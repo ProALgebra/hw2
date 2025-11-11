@@ -145,10 +145,10 @@ class Worker{
                  l = x & 0x0F;
             switch(h){
                 case 0: eval_binop(l);    break;
-                case 1: handle_stor(l);     break;
+                case 1: storage(l);     break;
                 case 2:
                 case 3:
-                case 4: handle_load(h, l);  break;
+                case 4: loading(h, l);  break;
                 case 5: control(l);  break;
                 case 6: pattern(l);  break;
                 case 7: builtins(l); break;
@@ -165,7 +165,7 @@ protected:
         int res = bops[l-1](x, y);
         mem.push(BOX(res));
     }
-        void handle_stor(char l){
+        void storage(char l){
             int res;
             switch (l) {
                     case 0: mem.push(BOX(INT));                                                    break;
@@ -207,7 +207,7 @@ protected:
                     default: throw error("Bad instructin %d", l);
             }
         }
-    void handle_load(char h, char l){
+    void loading(char h, char l){
 
             int *p = 0;
             switch (l) {
