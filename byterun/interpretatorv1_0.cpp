@@ -99,16 +99,6 @@ struct Memory{
         stac_top++;
         __gc_stack_top = (size_t)stac_top;
     }
-
-    std::string stack_repr(){
-        std::stringstream ss;
-        ss << "[";
-        for (int* isp = mem; isp != stac_top; ++isp){
-            ss << UNBOX(*isp) << " ";
-        }
-        ss << "]";
-        return ss.str();
-    }
 };
 
 bytefile* bf = nullptr;
