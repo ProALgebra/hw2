@@ -138,7 +138,6 @@ class Worker{
         return *this;
     }
     int eval(){
-        fprintf(log, "Entered main\n");
 
         do{
             char x = BYTE,
