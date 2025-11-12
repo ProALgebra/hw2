@@ -268,9 +268,9 @@ class Worker{
 
         do{
             current_instruction_ptr = ip;
-            char x = BYTE,
-                 h = (x & 0xF0) >> 4,
-                 l = x & 0x0F;
+            unsigned char opcode = static_cast<unsigned char>(BYTE);
+            char h = static_cast<char>((opcode & 0xF0u) >> 4);
+            char l = static_cast<char>(opcode & 0x0Fu);
             auto group = static_cast<OpcodeGroup>(h);
             switch(group){
                 case OpcodeGroup::BinOp:        eval_binop(l); break;
