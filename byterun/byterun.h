@@ -16,6 +16,7 @@ typedef struct
   int stringtab_size;        /* The size (in bytes) of the string table        */
   int global_area_size;      /* The size (in words) of global area             */
   int public_symbols_number; /* The number of public symbols                   */
+  size_t code_size;          /* The size (in bytes) of the bytecode            */
   char buffer[0];
 } bytefile;
 
@@ -71,7 +72,11 @@ bytefile *read_file(char *fname)
     failure("*** FAILURE: bytecode file is too small or corrupted.\n");
   }
 
-  file = (bytefile *)malloc(sizeof(int) * 4 + size);
+  {
+    size_t header_size = sizeof(int) * 3U;
+    size_t payload_size = (size_t)size - header_size;
+    file = (bytefile *)malloc(sizeof(bytefile) + payload_size);
+  }
 
   if (file == 0)
   {
@@ -85,11 +90,31 @@ bytefile *read_file(char *fname)
     failure("%s\n", strerror(err));
   }
 
-  if (size != fread(&file->stringtab_size, 1, size, f))
   {
-    int err = errno;
-    fclose(f);
-    failure("%s\n", strerror(err));
+    size_t header_size = sizeof(int) * 3U;
+    size_t payload_size = (size_t)size - header_size;
+    int header[3];
+
+    if (fread(header, sizeof(int), 3U, f) != 3U)
+    {
+      int err = errno;
+      fclose(f);
+      failure("%s\n", strerror(err));
+    }
+
+    file->stringtab_size = header[0];
+    file->global_area_size = header[1];
+    file->public_symbols_number = header[2];
+
+    if (payload_size != 0U)
+    {
+      if (payload_size != fread(file->buffer, 1, payload_size, f))
+      {
+        int err = errno;
+        fclose(f);
+        failure("%s\n", strerror(err));
+      }
+    }
   }
 
   fclose(f);
@@ -120,11 +145,25 @@ bytefile *read_file(char *fname)
     file->public_ptr = (int *)file->buffer;
     file->string_ptr = &file->buffer[public_table_bytes];
     file->code_ptr = &file->string_ptr[file->stringtab_size];
+    {
+      size_t consumed = public_table_bytes + (size_t)file->stringtab_size;
+      if (consumed > payload_size)
+      {
+        failure("*** FAILURE: bytecode section pointers are inconsistent.\n");
+      }
+      file->code_size = payload_size - consumed;
+    }
 
     if (file->code_ptr < file->buffer ||
         (size_t)(file->code_ptr - file->buffer) > payload_size)
     {
       failure("*** FAILURE: bytecode section pointers are inconsistent.\n");
+    }
+
+    if (file->code_size > payload_size ||
+        (size_t)(file->code_ptr - file->buffer) + file->code_size != payload_size)
+    {
+      failure("*** FAILURE: bytecode section size is inconsistent.\n");
     }
   }
 

@@ -10,9 +10,6 @@
 # include <vector>
 # include <algorithm>
 # include <cstring>
-# define INT    (ip += sizeof (int), *(int*)(ip - sizeof (int)))
-# define BYTE   *ip++
-# define STRING get_string (bf, INT)
 
 extern "C" {
     void __pre_gc(void);
@@ -27,24 +24,29 @@ extern "C" {
 const size_t stack_capacity = 1024 * 1024;
 using binop_fn = int (*)(int, int);
 
-static int op_add(int x, int y) { return x + y; }
-static int op_sub(int x, int y) { return x - y; }
-static int op_mul(int x, int y) { return x * y; }
+#define DEFINE_OP(name, op) \
+    static int op_##name(int x, int y) { return x op y; }
+
+DEFINE_OP(add, +)
+DEFINE_OP(sub, -)
+DEFINE_OP(mul, *)
+
+DEFINE_OP(lt, <)
+DEFINE_OP(le, <=)
+DEFINE_OP(gt, >)
+DEFINE_OP(ge, >=)
+DEFINE_OP(eq, ==)
+DEFINE_OP(ne, !=)
+DEFINE_OP(and, &&)
+DEFINE_OP(or, ||)
+
 static int op_div(int x, int y) { if(y == 0){
     throw std::runtime_error("zero div");
 }return x / y; }
+
 static int op_mod(int x, int y) { if(y == 0){
     throw std::runtime_error("zero div");
 }return x % y; }
-static int op_lt(int x, int y) { return x < y; }
-static int op_le(int x, int y) { return x <= y; }
-static int op_gt(int x, int y) { return x > y; }
-static int op_ge(int x, int y) { return x >= y; }
-static int op_eq(int x, int y) { return x == y; }
-static int op_ne(int x, int y) { return x != y; }
-static int op_and(int x, int y) { return x && y; }
-static int op_or(int x, int y) { return x || y; }
-
 static const binop_fn bops[] = {
     op_add, op_sub, op_mul, op_div, op_mod,
     op_lt, op_le, op_gt, op_ge, op_eq, op_ne,
@@ -210,6 +212,60 @@ bytefile* bf = nullptr;
 Sc* cur_scope = nullptr;
 char*  ip        = nullptr;
 char*  current_instruction_ptr = nullptr;
+char*  code_end  = nullptr;
+
+static inline size_t current_bit_offset(const char* ptr) {
+    if (bf == nullptr || ptr == nullptr || bf->code_ptr == nullptr) {
+        return 0;
+    }
+    if (ptr < bf->code_ptr) {
+        return 0;
+    }
+    if (code_end != nullptr && ptr > code_end) {
+        return static_cast<size_t>(code_end - bf->code_ptr) * 8;
+    }
+    return static_cast<size_t>(ptr - bf->code_ptr) * 8;
+}
+
+static inline void ensure_bytes_available(size_t bytes) {
+    if (bf == nullptr || ip == nullptr || code_end == nullptr) {
+        throw std::runtime_error("Bytecode stream is not initialized");
+    }
+    if (ip < bf->code_ptr || ip > code_end) {
+        size_t bit = 0;
+        if (ip > code_end) {
+            bit = current_bit_offset(code_end);
+        }
+        throw error("Instruction pointer escaped bytecode at bit %zu", bit);
+    }
+    size_t remaining = static_cast<size_t>(code_end - ip);
+    if (remaining < bytes) {
+        throw error("Attempt to read %zu bytes past end of bytecode at bit %zu",
+                    bytes,
+                    current_bit_offset(ip));
+    }
+}
+
+static inline int read_int_operand() {
+    ensure_bytes_available(sizeof(int));
+    int value;
+    std::memcpy(&value, ip, sizeof(value));
+    ip += sizeof(int);
+    return value;
+}
+
+static inline unsigned char read_byte_operand() {
+    ensure_bytes_available(1);
+    return static_cast<unsigned char>(*ip++);
+}
+
+static inline char* read_string_operand() {
+    return get_string(bf, read_int_operand());
+}
+
+# define INT    read_int_operand()
+# define BYTE   read_byte_operand()
+# define STRING read_string_operand()
 
 FILE* log = nullptr;
 
@@ -227,7 +283,13 @@ class Worker{
         if (bf == nullptr || instruction_ptr == nullptr) {
             throw std::runtime_error("Instruction pointer is not initialized");
         }
+        if (code_end == nullptr) {
+            throw std::runtime_error("Bytecode stream is not initialized");
+        }
         if (instruction_ptr < bf->code_ptr) {
+            throw std::runtime_error("Instruction pointer is out of bounds");
+        }
+        if (instruction_ptr > code_end) {
             throw std::runtime_error("Instruction pointer is out of bounds");
         }
         return static_cast<size_t>(instruction_ptr - bf->code_ptr) * 8;
@@ -258,6 +320,7 @@ class Worker{
     auto& setFile(bytefile* _bf){
         bf = _bf;
         ip = bf->code_ptr;
+        code_end = bf->code_ptr + bf->code_size;
         current_instruction_ptr = nullptr;
         log = stderr;
         mem.reserve_globals(bf->global_area_size);
