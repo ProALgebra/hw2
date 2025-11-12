@@ -51,28 +51,83 @@ bytefile *read_file(char *fname)
 
   if (fseek(f, 0, SEEK_END) == -1)
   {
-    failure("%s\n", strerror(errno));
+    int err = errno;
+    fclose(f);
+    failure("%s\n", strerror(err));
   }
 
-  file = (bytefile *)malloc(sizeof(int) * 4 + (size = ftell(f)));
+  size = ftell(f);
+
+  if (size == -1L)
+  {
+    int err = errno;
+    fclose(f);
+    failure("%s\n", strerror(err));
+  }
+
+  if (size < (long)(sizeof(int) * 3))
+  {
+    fclose(f);
+    failure("*** FAILURE: bytecode file is too small or corrupted.\n");
+  }
+
+  file = (bytefile *)malloc(sizeof(int) * 4 + size);
 
   if (file == 0)
   {
     failure("*** FAILURE: unable to allocate memory.\n");
   }
 
-  rewind(f);
+  if (fseek(f, 0, SEEK_SET) == -1)
+  {
+    int err = errno;
+    fclose(f);
+    failure("%s\n", strerror(err));
+  }
 
   if (size != fread(&file->stringtab_size, 1, size, f))
   {
-    failure("%s\n", strerror(errno));
+    int err = errno;
+    fclose(f);
+    failure("%s\n", strerror(err));
   }
 
   fclose(f);
 
-  file->string_ptr = &file->buffer[file->public_symbols_number * 2 * sizeof(int)];
-  file->public_ptr = (int *)file->buffer;
-  file->code_ptr = &file->string_ptr[file->stringtab_size];
+  if (file->public_symbols_number < 0 || file->global_area_size < 0 || file->stringtab_size < 0)
+  {
+    failure("*** FAILURE: bytecode header contains negative sizes.\n");
+  }
+
+  {
+    size_t header_size = sizeof(int) * 3U;
+    size_t payload_size = (size_t)size - header_size;
+    size_t entries_per_symbol = 2U * sizeof(int);
+    size_t public_symbols_number = (size_t)file->public_symbols_number;
+
+    if (public_symbols_number > payload_size / entries_per_symbol)
+    {
+      failure("*** FAILURE: bytecode public table exceeds file size.\n");
+    }
+
+    size_t public_table_bytes = public_symbols_number * entries_per_symbol;
+
+    if ((size_t)file->stringtab_size > payload_size - public_table_bytes)
+    {
+      failure("*** FAILURE: string table exceeds remaining file size.\n");
+    }
+
+    file->public_ptr = (int *)file->buffer;
+    file->string_ptr = &file->buffer[public_table_bytes];
+    file->code_ptr = &file->string_ptr[file->stringtab_size];
+
+    if (file->code_ptr < file->buffer ||
+        (size_t)(file->code_ptr - file->buffer) > payload_size)
+    {
+      failure("*** FAILURE: bytecode section pointers are inconsistent.\n");
+    }
+  }
+
   file->global_ptr = NULL;
 
   return file;
