@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "../runtime32/runtime.h"
 # include "byterun.h"
 
@@ -11,9 +12,9 @@
 void disassemble(FILE *f, bytefile *bf)
 {
 
-#define INT (ip += sizeof(int), *(int *)(ip - sizeof(int)))
+#define INT (ip += sizeof(int32_t), *(int32_t *)(ip - sizeof(int32_t)))
 #define BYTE *ip++
-#define STRING get_string(bf, INT)
+#define STRING get_string(bf, (uint32_t)INT)
 #define FAIL failure("ERROR: invalid opcode %d-%d\n", h, l)
 
   char *ip = bf->code_ptr;
@@ -245,15 +246,15 @@ stop:
 /* Dumps the contents of the file */
 void dump_file(FILE *f, bytefile *bf)
 {
-  int i;
+  uint32_t i;
 
-  fprintf(f, "String table size       : %d\n", bf->stringtab_size);
-  fprintf(f, "Global area size        : %d\n", bf->global_area_size);
-  fprintf(f, "Number of public symbols: %d\n", bf->public_symbols_number);
+  fprintf(f, "String table size       : %u\n", bf->stringtab_size);
+  fprintf(f, "Global area size        : %u\n", bf->global_area_size);
+  fprintf(f, "Number of public symbols: %u\n", bf->public_symbols_number);
   fprintf(f, "Public symbols          :\n");
 
   for (i = 0; i < bf->public_symbols_number; i++)
-    fprintf(f, "   0x%.8x: %s\n", get_public_offset(bf, i), get_public_name(bf, i));
+    fprintf(f, "   0x%.8x: %s\n", (unsigned int)get_public_offset(bf, i), get_public_name(bf, i));
 
   fprintf(f, "Code:\n");
   disassemble(f, bf);

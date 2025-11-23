@@ -1530,7 +1530,10 @@ extern void LdisableGC () {
   enable_GC = 0;
 }
 
-extern const size_t __start_custom_data, __stop_custom_data;
+
+void *__start_custom_data;
+void *__stop_custom_data;
+
 
 # ifdef __ENABLE_GC__
 

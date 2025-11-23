@@ -9,7 +9,10 @@
 # include <sstream>
 # include <vector>
 # include <algorithm>
+# include <memory>
 # include <cstring>
+# include <cstdint>
+# include <limits>
 
 extern "C" {
     void __pre_gc(void);
@@ -21,7 +24,7 @@ extern "C" {
 }
 
 
-const size_t stack_capacity = 1024 * 1024;
+const size_t stack_capacity = 4294967292/1024;
 using binop_fn = int (*)(int, int);
 
 #define DEFINE_OP(name, op) \
@@ -130,20 +133,14 @@ struct Sc{
     int* vars;
     int* args;
     int* acc;
+    int var_count;
+    int arg_count;
+    int acc_count;
+    int capture_header;
+    int* frame_limit;
 };
 
 constexpr size_t scope_word_count = (sizeof(Sc) + sizeof(int) - 1) / sizeof(int);
-
-static Sc* allocate_scope() {
-    __pre_gc();
-    const int scope_len = static_cast<int>(scope_word_count);
-    data* cell = static_cast<data*>(alloc(sizeof(int) * (scope_len + 1)));
-    cell->tag = ARRAY_TAG | (scope_len << 3);
-    Sc* scope = reinterpret_cast<Sc*>(cell->contents);
-    memset(scope, 0, sizeof(Sc));
-    __post_gc();
-    return scope;
-}
 
 struct error : std::exception{
 
@@ -163,18 +160,55 @@ struct error : std::exception{
     char const* what() const throw() {return text;}
 
 };
+bytefile* bf = nullptr;
+
+Sc* cur_scope = nullptr;
+char*  ip        = nullptr;
+char*  current_instruction_ptr = nullptr;
+char*  code_end  = nullptr;
+
+size_t instruction_bit_number(const char* instruction_ptr) {
+    if (bf == nullptr || instruction_ptr == nullptr) {
+        throw std::runtime_error("Instruction pointer is not initialized");
+    }
+    if (code_end == nullptr) {
+        throw std::runtime_error("Bytecode stream is not initialized");
+    }
+    if (instruction_ptr < bf->code_ptr) {
+        throw std::runtime_error("Instruction pointer is out of bounds");
+    }
+    if (instruction_ptr > code_end) {
+        throw std::runtime_error("Instruction pointer is out of bounds");
+    }
+    return static_cast<size_t>(instruction_ptr - bf->code_ptr) * 8;
+}
 int* stack_start = nullptr;
 int* stack_end   = nullptr;
 struct Memory{
-    int mem[stack_capacity];
+    std::unique_ptr<int[]> storage;
     int *global_area = nullptr;
 
+    Memory() : storage(new int[stack_capacity]) {}
+
+    int* base() const {
+        return storage.get();
+    }
+
+    void reset() {
+        int* base_ptr = base();
+        global_area = nullptr;
+        stack_start = base_ptr;
+        stack_end = base_ptr + stack_capacity;
+        __gc_stack_top = reinterpret_cast<size_t>(stack_end);
+        __gc_stack_bottom = reinterpret_cast<size_t>(stack_end);
+    }
+
     int pop() {
-        if (__gc_stack_top == reinterpret_cast<size_t>(stack_start)){
+        if (__gc_stack_top == reinterpret_cast<size_t>(stack_end)){
             throw std::runtime_error("Pop from empty stack");
         }
-        __gc_stack_top -= sizeof(int);
         int ret = *reinterpret_cast<int*>(__gc_stack_top);
+        __gc_stack_top += sizeof(int);
         return ret;
     }
 
@@ -183,23 +217,24 @@ struct Memory{
     }
 
     void push(int v){
-        if (__gc_stack_top == reinterpret_cast<size_t>(stack_end)){
-            throw std::runtime_error("Push to full stack");
+        if (__gc_stack_top == reinterpret_cast<size_t>(stack_start)){
+            throw error("Push to full stack int bit number %zu", instruction_bit_number(current_instruction_ptr));
         }
 
+        __gc_stack_top -= sizeof(int);
         *reinterpret_cast<int*>(__gc_stack_top) = v;
-        __gc_stack_top += sizeof(int);
     }
 
-    void reserve_globals(int words){
-        if (words < 0 || static_cast<size_t>(words) > stack_capacity){
+    void reserve_globals(uint32_t words){
+        if (static_cast<size_t>(words) > stack_capacity){
             throw std::runtime_error("Invalid global area size");
         }
-        global_area = mem;
+        global_area = base();
         std::fill(global_area, global_area + words, 0);
-        int* new_top = mem + words;
-        __gc_stack_top = reinterpret_cast<size_t>(new_top);
-        stack_start = new_top;
+        stack_start = base() + words;
+        stack_end = base() + stack_capacity;
+        __gc_stack_top = reinterpret_cast<size_t>(stack_end);
+        __gc_stack_bottom = reinterpret_cast<size_t>(stack_end);
     }
 
     int* globals_ptr() const {
@@ -207,51 +242,30 @@ struct Memory{
     }
 };
 
-bytefile* bf = nullptr;
-
-Sc* cur_scope = nullptr;
-char*  ip        = nullptr;
-char*  current_instruction_ptr = nullptr;
-char*  code_end  = nullptr;
-
-static inline size_t current_bit_offset(const char* ptr) {
-    if (bf == nullptr || ptr == nullptr || bf->code_ptr == nullptr) {
-        return 0;
+static Sc* allocate_scope(Memory& mem) {
+    for (size_t i = 0; i < scope_word_count; ++i) {
+        mem.push(0);
     }
-    if (ptr < bf->code_ptr) {
-        return 0;
-    }
-    if (code_end != nullptr && ptr > code_end) {
-        return static_cast<size_t>(code_end - bf->code_ptr) * 8;
-    }
-    return static_cast<size_t>(ptr - bf->code_ptr) * 8;
+    return reinterpret_cast<Sc*>(__gc_stack_top);
 }
 
+
+
 static inline void ensure_bytes_available(size_t bytes) {
-    if (bf == nullptr || ip == nullptr || code_end == nullptr) {
-        throw std::runtime_error("Bytecode stream is not initialized");
-    }
-    if (ip < bf->code_ptr || ip > code_end) {
-        size_t bit = 0;
-        if (ip > code_end) {
-            bit = current_bit_offset(code_end);
-        }
-        throw error("Instruction pointer escaped bytecode at bit %zu", bit);
-    }
-    size_t remaining = static_cast<size_t>(code_end - ip);
-    if (remaining < bytes) {
+    if (ip > code_end ||
+        static_cast<size_t>(code_end - ip) < bytes) {
         throw error("Attempt to read %zu bytes past end of bytecode at bit %zu",
                     bytes,
-                    current_bit_offset(ip));
+                    instruction_bit_number(current_instruction_ptr));
     }
 }
 
 static inline int read_int_operand() {
-    ensure_bytes_available(sizeof(int));
-    int value;
+    ensure_bytes_available(sizeof(uint32_t));
+    int32_t value;
     std::memcpy(&value, ip, sizeof(value));
-    ip += sizeof(int);
-    return value;
+    ip += sizeof(uint32_t);
+    return static_cast<int>(value);
 }
 
 static inline unsigned char read_byte_operand() {
@@ -260,7 +274,7 @@ static inline unsigned char read_byte_operand() {
 }
 
 static inline char* read_string_operand() {
-    return get_string(bf, read_int_operand());
+    return get_string(bf, static_cast<uint32_t>(read_int_operand()));
 }
 
 # define INT    read_int_operand()
@@ -279,21 +293,7 @@ class Worker{
             pop_extra_root(reinterpret_cast<void**>(&cur_scope));
         }
     }
-    size_t instruction_bit_number(const char* instruction_ptr) const {
-        if (bf == nullptr || instruction_ptr == nullptr) {
-            throw std::runtime_error("Instruction pointer is not initialized");
-        }
-        if (code_end == nullptr) {
-            throw std::runtime_error("Bytecode stream is not initialized");
-        }
-        if (instruction_ptr < bf->code_ptr) {
-            throw std::runtime_error("Instruction pointer is out of bounds");
-        }
-        if (instruction_ptr > code_end) {
-            throw std::runtime_error("Instruction pointer is out of bounds");
-        }
-        return static_cast<size_t>(instruction_ptr - bf->code_ptr) * 8;
-    }
+
     size_t current_instruction_bit_number() const {
         if (current_instruction_ptr == nullptr) {
             throw std::runtime_error("Instruction pointer is not initialized");
@@ -310,10 +310,7 @@ class Worker{
         cur_scope = nullptr;
         current_instruction_ptr = nullptr;
 
-        stack_start = mem.mem;
-        __gc_stack_top = reinterpret_cast<size_t>(mem.mem);
-        __gc_stack_bottom = reinterpret_cast<size_t>(mem.mem);
-        stack_end = mem.mem + stack_capacity;
+        mem.reset();
 
         return *this;
     }
@@ -375,7 +372,9 @@ protected:
                 }
                 case StorageOpcode::Sexp: {
                     int hash = LtagHash(STRING);
-                    mem.push(sexpEval(INT, hash));
+                    int count = INT;
+                    count = ensure_non_negative(count, "sexp element count");
+                    mem.push(sexpEval(count, hash));
                     break;
                 }
                 case StorageOpcode::StoreIndexed:
@@ -387,19 +386,26 @@ protected:
                     mem.push(Bsta((void*)v, i, (void*)loc));
                     break;
                 }
-                case StorageOpcode::Jump:
-                    ip = bf->code_ptr + INT;
+                case StorageOpcode::Jump: {
+                    int offset = INT;
+                    ip = require_code_offset(offset, "jump");
                     break;
-                case StorageOpcode::End:
+                }
+                case StorageOpcode::End:{
                     if (cur_scope->outer == nullptr) {
                         exit(0);
                     }
                     res = mem.pop();
-                    __gc_stack_top = reinterpret_cast<size_t>(cur_scope->args);
+                    int* frame_top = cur_scope->frame_limit;
+                    if (frame_top == nullptr) {
+                        throw error("Frame limit is not initialized at bit %zu",
+                                    current_instruction_bit_number());
+                    }
+                    __gc_stack_top = reinterpret_cast<size_t>(frame_top);
                     ip = cur_scope->origin_ip;
                     cur_scope = cur_scope->outer;
                     mem.push(res);
-                    break;
+                    break;}
                 case StorageOpcode::Return:
                     throw error("RET not implemented at bit %zu", current_instruction_bit_number());
                 case StorageOpcode::Drop:
@@ -431,20 +437,12 @@ protected:
             }
         }
     void loading(char h, char l){
-            int *p = nullptr;
             auto mode = static_cast<AddressMode>(l);
             switch (mode) {
                 case AddressMode::Global:
-                    p = bf->global_ptr + INT;
-                    break;
                 case AddressMode::Local:
-                    p = cur_scope->vars + INT;
-                    break;
                 case AddressMode::Argument:
-                    p = cur_scope->args + INT;
-                    break;
                 case AddressMode::Closure:
-                    p = reinterpret_cast<int*>(*(cur_scope->acc + INT));
                     break;
                 default:
                     throw error("Unknown address mode %d (opcode %d) at bit %zu",
@@ -452,6 +450,8 @@ protected:
                                 static_cast<int>(h),
                                 current_instruction_bit_number());
             }
+            int index = INT;
+            int *p = resolve_slot(mode, index);
             switch (static_cast<LoadOpcode>(h)) {
                 case LoadOpcode::Load: {
                     int value = *p;
@@ -479,56 +479,80 @@ protected:
                 case ControlOpcode::JumpIfZero: {
                     int var = UNBOX(mem.pop());
                     int destination = INT;
+                    char* target = require_code_offset(destination, "jump-if-zero target");
                     if (!var) {
-                        ip = bf->code_ptr + destination;
+                        ip = target;
                     }
                     break;
                 }
                 case ControlOpcode::JumpIfNotZero: {
                     int var = UNBOX(mem.pop());
                     int destination = INT;
+                    char* target = require_code_offset(destination, "jump-if-not-zero target");
                     if (var) {
-                        ip = bf->code_ptr + destination;
+                        ip = target;
                     }
                     break;
                 }
                 case ControlOpcode::Begin: {
-                    Sc* scope = allocate_scope();
+                    int* frame_entry = reinterpret_cast<int*>(__gc_stack_top);
+                    int arg_slots = ensure_non_negative(INT, "argument slot count");
+                    int arg_capacity = checked_add(arg_slots, 2, "argument slot count");
                     int* top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    scope->args = top_ptr;
-                    int arg_slots = INT;
-                    top_ptr += arg_slots + 1;
+                    top_ptr -= arg_capacity;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
-                    scope->origin_ip = (char*)mem.pop();
+                    mem.pop(); 
+                    char* saved_origin_ip = (char*)mem.pop();
+                    int* args_ptr = reinterpret_cast<int*>(__gc_stack_top);
+                    int var_slots = ensure_non_negative(INT, "local variable slot count");
                     top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    scope->vars = top_ptr;
-                    scope->acc = top_ptr;
-                    int var_slots = INT;
-                    top_ptr += var_slots;
+                    top_ptr -= var_slots;
+                    int* vars_ptr = top_ptr;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
+                    Sc* scope = allocate_scope(mem);
+                    scope->origin_ip = saved_origin_ip;
+                    scope->args = args_ptr;
+                    scope->vars = vars_ptr;
+                    scope->acc = vars_ptr;
+                    scope->var_count = var_slots;
+                    scope->arg_count = arg_slots;
+                    scope->acc_count = 0;
+                    scope->capture_header = 0;
+                    scope->frame_limit = frame_entry;
                     scope->outer = cur_scope;
                     cur_scope = scope;
                     break;
                 }
                 case ControlOpcode::BeginCaptured: {
-                    Sc* scope = allocate_scope();
-                    int arg_slots = INT;
+                    int* frame_entry = reinterpret_cast<int*>(__gc_stack_top);
+                    int arg_slots = ensure_non_negative(INT, "captured function argument slot count");
+                    int arg_capacity = checked_add(arg_slots, 2, "captured function argument slot count");
                     int* top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    scope->args = top_ptr;
-                    top_ptr += arg_slots + 2;
+                    top_ptr -= arg_capacity;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
-                    int captured = mem.pop();
-                    scope->origin_ip = (char *)mem.pop();
+                    int* args_ptr = top_ptr;
+                    int captured = ensure_non_negative(mem.pop(), "captured environment size");
+                    char* saved_origin_ip = (char *)mem.pop();
                     top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    top_ptr += 2;
+                    top_ptr -= 2;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
-                    scope->acc = top_ptr;
-                    top_ptr += captured;
+                    top_ptr -= captured;
+                    int* acc_ptr = top_ptr;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
-                    scope->vars = top_ptr;
-                    int var_slots = INT;
-                    top_ptr += var_slots;
+                    int var_slots = ensure_non_negative(INT, "captured function local variable slot count");
+                    top_ptr -= var_slots;
+                    int* vars_ptr = top_ptr;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
+                    Sc* scope = allocate_scope(mem);
+                    scope->origin_ip = saved_origin_ip;
+                    scope->args = args_ptr;
+                    scope->acc = acc_ptr;
+                    scope->vars = vars_ptr;
+                    scope->acc_count = captured;
+                    scope->arg_count = arg_capacity;
+                    scope->var_count = var_slots;
+                    scope->capture_header = 2;
+                    scope->frame_limit = frame_entry;
                     scope->outer = cur_scope;
                     cur_scope = scope;
                     break;
@@ -536,21 +560,23 @@ protected:
                 case ControlOpcode::Closure: {
                     int res = 0;
                     int pos = INT;
-                    int n = INT;
+                    (void)require_code_offset(pos, "closure entry");
+                    int n = ensure_non_negative(INT, "closure capture count");
                     for (int i = 0; i < n; i++) {
                         char tag = BYTE;
-                        switch (static_cast<AddressMode>(tag)) {
+                        auto mode = static_cast<AddressMode>(tag);
+                        switch (mode) {
                             case AddressMode::Global:
-                                res = *(bf->global_ptr + INT);
+                                res = *require_global_slot(INT);
                                 break;
                             case AddressMode::Local:
-                                res = *(cur_scope->vars + INT);
+                                res = *require_local_slot(INT);
                                 break;
                             case AddressMode::Argument:
-                                res = *(cur_scope->args + INT);
+                                res = *require_argument_slot(INT);
                                 break;
                             case AddressMode::Closure:
-                                res = *(int*)*(cur_scope->acc + INT);
+                                res = *require_closure_slot(INT);
                                 break;
                             default:
                                 throw error("Unknown closure capture mode %d at bit %zu",
@@ -563,12 +589,16 @@ protected:
                     break;
                 }
                 case ControlOpcode::CallClosure: {
-                    int n = INT;
-                    int* top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    data* d = TO_DATA(*(top_ptr - n - 1));
-                    memmove(top_ptr - n - 1, top_ptr - n, n * sizeof(int));
-                    top_ptr -= 1;
-                    __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
+                    int n = ensure_non_negative(INT, "closure argument count");
+                    std::vector<int> args;
+                    args.reserve(n);
+                    for (int i = 0; i < n; ++i) {
+                        args.push_back(mem.pop());
+                    }
+                    data* d = TO_DATA(mem.pop());
+                    for (int i = n - 1; i >= 0; --i) {
+                        mem.push(args[i]);
+                    }
                     int offset = *(int*)d->contents;
                     int accN = LEN(d->tag) - 1;
                     mem.push(ip);
@@ -576,21 +606,24 @@ protected:
                     for (int i = accN - 1; i >= 0; i--) {
                         mem.push(((int*)d->contents) + i + 1);
                     }
-                    ip = bf->code_ptr + offset;
-                    top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    top_ptr -= accN + n + 2;
-                    __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
+                    ip = require_code_offset(offset, "closure call target");
+                    int to_discard = checked_add(accN, checked_add(n, 2, "closure call frame size"), "closure frame discard");
+                    for (int i = 0; i < to_discard; ++i) {
+                        mem.pop();
+                    }
                     break;
                 }
                 case ControlOpcode::Call: {
                     int v = INT;
-                    int n = INT;
+                    char* target = require_code_offset(v, "call target");
+                    int n = ensure_non_negative(INT, "call argument count");
                     mem.push(ip);
                     mem.push(0);
-                    ip = bf->code_ptr + v;
-                    int* top_ptr = reinterpret_cast<int*>(__gc_stack_top);
-                    top_ptr -= (n + 2);
-                    __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
+                    ip = target;
+                    int to_discard = checked_add(n, 2, "call frame size");
+                    for (int i = 0; i < to_discard; ++i) {
+                        mem.pop();
+                    }
                     break;
                 }
                 case ControlOpcode::Tag: {
@@ -669,9 +702,11 @@ protected:
                 case BuiltinOpcode::ToString:
                     res = (int)Lstring((void *)mem.pop());
                     break;
-                case BuiltinOpcode::MakeArray:
-                    res = (int)make_array(INT);
+                case BuiltinOpcode::MakeArray: {
+                    int length = ensure_non_negative(INT, "array length");
+                    res = (int)make_array(length);
                     break;
+                }
                 default:
                     throw error("Unknown builtin opcode %d at bit %zu",
                                 static_cast<int>(l),
@@ -699,12 +734,14 @@ protected:
 
         void* make_closure (int n, void *entry) {
             __pre_gc();
-            data* r = static_cast<data*>(alloc(sizeof(int) * (n + 2)));
-            r->tag = CLOSURE_TAG | ((n + 1) << 3);
+            int total_slots = checked_add(n, 2, "closure slot count");
+            int tag_slots = checked_add(n, 1, "closure tag length");
+            data* r = static_cast<data*>(alloc(sizeof(int) * total_slots));
+            r->tag = CLOSURE_TAG | (tag_slots << 3);
             ((void**)r->contents)[0] = entry;
             __post_gc();
 
-            for (int i = 0; i < n; ++i) {
+            for (int i = n - 1; i >= 0; --i) {
                 ((int*)r->contents)[i + 1] = mem.pop();
             }
             return r->contents;
@@ -712,7 +749,8 @@ protected:
 
         void* sexpEval (int n, int hash) {
             __pre_gc();
-            sexp* r = static_cast<sexp*>(alloc(sizeof(int) * (n + 2)));
+            int total_slots = checked_add(n, 2, "sexp slot count");
+            sexp* r = static_cast<sexp*>(alloc(sizeof(int) * total_slots));
             data* d = &(r->contents);
             d->tag = SEXP_TAG | (n << 3);
             __post_gc();
@@ -725,6 +763,157 @@ protected:
             return d->contents;
         }
 
+    private:
+        int ensure_non_negative(int value, const char* what) const {
+            if (value < 0) {
+                throw error("%s (%d) must be non-negative at bit %zu",
+                            what,
+                            value,
+                            current_instruction_bit_number());
+            }
+            return value;
+        }
+
+        int checked_add(int lhs, int rhs, const char* what) const {
+            if (rhs < 0) {
+                throw error("Internal error: negative addend for %s at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
+            if (lhs > std::numeric_limits<int>::max() - rhs) {
+                throw error("%s overflow (%d + %d) at bit %zu",
+                            what,
+                            lhs,
+                            rhs,
+                            current_instruction_bit_number());
+            }
+            return lhs + rhs;
+        }
+
+        Sc* require_scope(const char* what) const {
+            if (cur_scope == nullptr) {
+                throw error("Attempt to access %s without an active scope at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
+            return cur_scope;
+        }
+
+        int* require_slot_in_range(int* base,
+                                   int count,
+                                   int index,
+                                   const char* what) const {
+            if (base == nullptr) {
+                throw error("Storage for %s is not initialized at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
+            if (count < 0) {
+                throw error("Storage size for %s (%d) is corrupted at bit %zu",
+                            what,
+                            count,
+                            current_instruction_bit_number());
+            }
+            if (index < 0 || index >= count) {
+                throw error("%s index %d out of bounds (size %d) at bit %zu",
+                            what,
+                            index,
+                            count,
+                            current_instruction_bit_number());
+            }
+            return base + index;
+        }
+
+        int* require_global_slot(int index) const {
+            if (bf == nullptr || bf->global_ptr == nullptr) {
+                throw error("Global area is not initialized at bit %zu",
+                            current_instruction_bit_number());
+            }
+            if (index < 0) {
+                throw error("Global index %d is negative at bit %zu",
+                            index,
+                            current_instruction_bit_number());
+            }
+            uint32_t size = bf->global_area_size;
+            if (static_cast<uint32_t>(index) >= size) {
+                throw error("Global index %d exceeds size %u at bit %zu",
+                            index,
+                            size,
+                            current_instruction_bit_number());
+            }
+            return bf->global_ptr + index;
+        }
+
+        int* require_local_slot(int index) const {
+            Sc* scope = require_scope("local variables");
+            return require_slot_in_range(scope->vars,
+                                         scope->var_count,
+                                         index,
+                                         "local variable");
+        }
+
+        int* require_argument_slot(int index) const {
+            Sc* scope = require_scope("arguments");
+            int logical_index = scope->arg_count - 1 - index;
+            return require_slot_in_range(scope->args,
+                                         scope->arg_count,
+                                         logical_index,
+                                         "argument");
+        }
+
+        int* require_closure_slot(int index) const {
+            Sc* scope = require_scope("captured variables");
+            int* slot = require_slot_in_range(scope->acc,
+                                              scope->acc_count,
+                                              index,
+                                              "captured variable");
+            int* resolved = reinterpret_cast<int*>(*slot);
+            if (resolved == nullptr) {
+                throw error("Captured variable slot %d is null at bit %zu",
+                            index,
+                            current_instruction_bit_number());
+            }
+            return resolved;
+        }
+
+        int* resolve_slot(AddressMode mode, int index) const {
+            switch (mode) {
+                case AddressMode::Global:
+                    return require_global_slot(index);
+                case AddressMode::Local:
+                    return require_local_slot(index);
+                case AddressMode::Argument:
+                    return require_argument_slot(index);
+                case AddressMode::Closure:
+                    return require_closure_slot(index);
+                default:
+                    throw error("Unknown address mode %d at bit %zu",
+                                static_cast<int>(mode),
+                                current_instruction_bit_number());
+            }
+        }
+
+        char* require_code_offset(int offset, const char* what) const {
+            if (bf == nullptr || bf->code_ptr == nullptr) {
+                throw error("Bytecode stream is not initialized at bit %zu",
+                            current_instruction_bit_number());
+            }
+            if (offset < 0) {
+                throw error("%s offset %d is negative at bit %zu",
+                            what,
+                            offset,
+                            current_instruction_bit_number());
+            }
+            uint32_t size = bf->code_size;
+            if (static_cast<uint32_t>(offset) >= size) {
+                throw error("%s offset %d out of bounds (code size %u) at bit %zu",
+                            what,
+                            offset,
+                            size,
+                            current_instruction_bit_number());
+            }
+            return bf->code_ptr + offset;
+        }
     };
 int main(int argc, char*argv[]){
     Worker w = Worker();
