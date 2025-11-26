@@ -50,10 +50,20 @@ static int32_t op_div(int32_t x, int32_t y) { if(y == 0){
 static int32_t op_mod(int32_t x, int32_t y) { if(y == 0){
     throw std::runtime_error("zero div");
 }return x % y; }
-static const binop_fn bops[] = {
-    op_add, op_sub, op_mul, op_div, op_mod,
-    op_lt, op_le, op_gt, op_ge, op_eq, op_ne,
-    op_and, op_or
+enum class BinOp : char {
+    BinOpAdd = 0,
+    BinOpSub = 1,
+    BinOpMul = 2,
+    BinOpDiv = 3,
+    BinOpMod = 4,
+    BinOpLt = 5,
+    BinOpLe = 6,
+    BinOpGt = 7,
+    BinOpGe = 8,
+    BinOpEq = 9,
+    BinOpNe = 10,
+    BinOpAnd = 11,
+    BinOpOr = 12
 };
 
 enum class OpcodeGroup : char {
@@ -274,7 +284,20 @@ static inline unsigned char read_byte_operand() {
 }
 
 static inline char* read_string_operand() {
-    return get_string(bf, static_cast<uint32_t>(read_int_operand()));
+    int32_t raw_index = read_int_operand();
+    if (raw_index < 0) {
+        throw error("Negative string index %d at bit %zu",
+                    raw_index,
+                    instruction_bit_number(current_instruction_ptr));
+    }
+    uint32_t pos = static_cast<uint32_t>(raw_index);
+    if (bf == nullptr || pos >= bf->stringtab_size) {
+        throw error("String index %u is out of range (size %u) at bit %zu",
+                    pos,
+                    bf ? bf->stringtab_size : 0U,
+                    instruction_bit_number(current_instruction_ptr));
+    }
+    return get_string(bf, pos);
 }
 
 # define INT    read_int_operand()
@@ -355,7 +378,74 @@ protected:
     void eval_binop(char l){
         int32_t y = UNBOX(mem.pop());
         int32_t x = UNBOX(mem.pop());
-        int32_t res = bops[l-1](x, y);
+        static const binop_fn bops[] = {
+            op_add, op_sub, op_mul, op_div, op_mod,
+            op_lt, op_le, op_gt, op_ge, op_eq, op_ne,
+            op_and, op_or
+        };
+        
+        int32_t res;
+        switch (static_cast<BinOp>(l - 1))
+        {
+            case BinOp::BinOpAdd:
+                res = bops[l-1](x, y);
+            break;
+                
+            case BinOp::BinOpSub:
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpMul:
+                res = bops[l-1](x, y);
+            break;
+                
+            case BinOp::BinOpDiv: 
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpMod:
+                res = bops[l-1](x, y);
+            break;
+                
+            case BinOp::BinOpLt: 
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpLe:
+                res = bops[l-1](x, y);
+            break;
+                
+            case BinOp::BinOpGt:
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpGe:
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpEq:
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpNe:
+            res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpAnd:
+                res = bops[l-1](x, y);
+            break;
+            
+            case BinOp::BinOpOr:
+                res = bops[l-1](x, y);
+            break;
+            
+        
+        default:
+            throw error("unknown binop group l=%d at bit %zu",
+                static_cast<int32_t>(l),
+                current_instruction_bit_number());
+            break;
+        }
         mem.push(BOX(res));
     }
         void storage(char l){
@@ -590,15 +680,19 @@ protected:
                 }
                 case ControlOpcode::CallClosure: {
                     int32_t n = ensure_non_negative(INT, "closure argument count");
-                    std::vector<int32_t> args;
-                    args.reserve(n);
-                    for (int32_t i = 0; i < n; ++i) {
-                        args.push_back(mem.pop());
+                    size_t available_words = (reinterpret_cast<size_t>(stack_end) - __gc_stack_top) / sizeof(int32_t);
+                    size_t required_words = static_cast<size_t>(n) + 1;
+                    if (required_words > available_words) {
+                        throw error("Stack underflow during closure call at bit %zu",
+                                    current_instruction_bit_number());
                     }
-                    data* d = TO_DATA(mem.pop());
-                    for (int32_t i = n - 1; i >= 0; --i) {
-                        mem.push(args[i]);
+                    int32_t* args_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
+                    int32_t* closure_slot = args_ptr + n;
+                    data* d = TO_DATA(*closure_slot);
+                    if (n > 0) {
+                        std::memmove(args_ptr + 1, args_ptr, static_cast<size_t>(n) * sizeof(int32_t));
                     }
+                    __gc_stack_top = reinterpret_cast<size_t>(args_ptr + 1);
                     int32_t offset = *(int32_t*)d->contents;
                     int32_t accN = LEN(d->tag) - 1;
                     mem.push(ip);
