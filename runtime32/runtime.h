@@ -37,7 +37,7 @@
 extern "C"{
 #endif
 
-void failure (char *s, ...);
+void failure (const char *s, ...);
 
 extern size_t __gc_stack_top, __gc_stack_bottom;
 
@@ -72,7 +72,7 @@ extern int Llength  (void *p);
 extern void* LmakeString (int length);
 extern void* Lstring (void *p);
 
-extern void failure (char *s, ...);
+extern void failure (const char *s, ...);
 
 extern int Bclosure_tag_patt (void *x);
 extern int Bboxed_patt       (void *x);
@@ -88,7 +88,7 @@ extern void* Belem (void *p, int i);
 extern void* Bsta  (void *v, int i, void *x);
 extern void* Bclosure (int bn, void *entry, ...);
 
-extern void Bmatch_failure (void *v, char *fname, int line, int col);
+extern void Bmatch_failure (void *v, const char *fname, int line, int col);
 
 # ifdef __cplusplus
 }
