@@ -8,7 +8,7 @@ check: $(TESTS)
 
 $(TESTS): %: %.lama
 	@echo $@
-	$(LAMAC)  $< && `which time` -f "$@\t%U" ./$@
+	`which time` -f "Sort\t%U" lamac -i Sort.lama </dev/null
 
 clean:
 	$(RM) test*.log *.s *~ $(TESTS) *.i

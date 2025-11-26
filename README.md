@@ -9,12 +9,11 @@ Fatal error: exception Failure("ERROR: undefined label 'Lstringcat'")
 Так же тесты производительности
 ```
 
-make[1]: Entering directory '/home/doctor/VM/hw2/performance'
 Sort
-../src/lamac  Sort.lama && `which time` -f "Sort\t%U" ./Sort
-Sort    2.43
+`which time` -f "Sort\t%U" lamac -i Sort.lama </dev/null
+Sort    10.24
 make[1]: Leaving directory '/home/doctor/VM/hw2/performance'
 lamac -b ../performance/Sort.lama
 `which time` -f "Sort time\t%U" ./interpreter Sort.bc
-Sort time       6.12
+Sort time       6.10
 ```
