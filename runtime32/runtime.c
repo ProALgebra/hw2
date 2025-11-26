@@ -112,21 +112,21 @@ void pop_extra_root (void ** p) {
 
 /* end */
 
-static void vfailure (char *s, va_list args) {
+static void vfailure (const char *s, va_list args) {
   fflush   (stdout);
   fprintf  (stderr, "*** FAILURE: ");
   vfprintf (stderr, s, args); // vprintf (char *, va_list) <-> printf (char *, ...)
   exit     (255);
 }
 
-void failure (char *s, ...) {
+void failure (const char *s, ...) {
   va_list args;
 
   va_start (args, s);
   vfailure (s, args);
 }
 
-void Lassert (void *f, char *s, ...) {
+void Lassert (void *f, const char *s, ...) {
   if (!UNBOX(f)) {
     va_list args;
 
@@ -1190,7 +1190,7 @@ extern void* Bsta (void *v, int i, void *x) {
   return v;
 }
 
-static void fix_unboxed (char *s, va_list va) {
+static void fix_unboxed (const char *s, va_list va) {
   size_t *p = (size_t*)va;
   int i = 0;
 
@@ -1206,7 +1206,7 @@ static void fix_unboxed (char *s, va_list va) {
   }
 }
 
-extern void Lfailure (char *s, ...) {
+extern void Lfailure (const char *s, ...) {
   va_list args;
 
   va_start    (args, s);
@@ -1214,7 +1214,7 @@ extern void Lfailure (char *s, ...) {
   vfailure    (s, args);
 }
 
-extern void Bmatch_failure (void *v, char *fname, int line, int col) {
+extern void Bmatch_failure (void *v, const char *fname, int line, int col) {
   createStringBuf ();
   printValue (v);
   failure ("match failure at %s:%d:%d, value '%s'\n",
