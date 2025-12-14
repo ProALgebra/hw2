@@ -1,4 +1,4 @@
-all: byterun interpreter
+all: byterun interpreter bytecode_freq
 
 interpreter: interpretatorv1_0.cpp
 	g++ -std=c++17 -m32 -fpermissive interpretatorv1_0.cpp ../runtime32/runtime.a -o interpreter
@@ -9,6 +9,9 @@ byterun: byterun.o
 
 byterun.o: byterun.c
 	$(CC) -g -fstack-protector-all -m32 -c byterun.c
+
+bytecode_freq: bytecode_freq.cpp
+	g++ -std=c++17 bytecode_freq.cpp -o bytecode_freq
 
 perf_test: lama all performance
 	lamac -b ../performance/Sort.lama
@@ -21,4 +24,4 @@ performance:
 	$(MAKE) -C ../performance
 
 clean:
-	$(RM) *.a *.o *~
+	$(RM) *.a *.o *~ bytecode_freq interpreter byterun
