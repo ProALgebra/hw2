@@ -1,5 +1,3 @@
-/* Lama SM Bytecode interpreter */
-
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -599,7 +597,6 @@ void disassemble(FILE *f, bytefile *bf)
   }
 }
 
-/* Dumps the contents of the file */
 void dump_file(FILE *f, bytefile *bf)
 {
   uint32_t i;
