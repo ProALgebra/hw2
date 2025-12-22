@@ -5,13 +5,15 @@ interpreter: interpretatorv1_0.cpp
 
 byterun: byterun.o
 	$(CC) -m32 -g -o byterun byterun.o ../runtime32/runtime.a
-	
+
+byterun_nomain.o: byterun.c
+	$(CC) -g -fstack-protector-all -m32 -DNO_MAIN -c byterun.c -o byterun_nomain.o
 
 byterun.o: byterun.c
 	$(CC) -g -fstack-protector-all -m32 -c byterun.c
 
-bytecode_freq: bytecode_freq.cpp
-	g++ -std=c++17 bytecode_freq.cpp -o bytecode_freq
+bytecode_freq: bytecode_freq.cpp byterun_nomain.o
+	g++ -std=c++17 -m32 bytecode_freq.cpp byterun_nomain.o -o bytecode_freq
 
 perf_test: lama all performance
 	lamac -b ../performance/Sort.lama
