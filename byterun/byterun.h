@@ -41,6 +41,7 @@ typedef struct {
 
 
 int decode_instruction(bytefile *bf, uint32_t offset, FILE *f, instr_info *info);
+int decode_instruction_char(bytefile *bf, uint32_t offset, char *out, size_t out_size, instr_info *info);
 
 #ifdef BYTERUN_NO_HEADER_IMPL
 char *get_string(bytefile *f, uint32_t pos);

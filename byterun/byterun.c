@@ -1,3 +1,5 @@
+/* Lama SM Bytecode interpreter */
+
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -581,6 +583,19 @@ int decode_instruction(bytefile *bf, uint32_t offset, FILE *f, instr_info *info)
   return 0;
 }
 
+int decode_instruction_char(bytefile *bf, uint32_t offset, char *out, size_t out_size, instr_info *info) {
+  if (out_size == 0) {
+    return -1;
+  }
+  FILE *mem = fmemopen(out, out_size, "w");
+  if (mem == NULL) {
+    return -1;
+  }
+  int res = decode_instruction(bf, offset, mem, info);
+  fclose(mem);
+  return res;
+}
+
 /* Disassembles the bytecode pool */
 void disassemble(FILE *f, bytefile *bf)
 {
@@ -597,6 +612,7 @@ void disassemble(FILE *f, bytefile *bf)
   }
 }
 
+/* Dumps the contents of the file */
 void dump_file(FILE *f, bytefile *bf)
 {
   uint32_t i;

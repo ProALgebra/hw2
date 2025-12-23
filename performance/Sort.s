@@ -1,6 +1,6 @@
-	.file "/home/doctor/Lama/performance/Sort.lama"
+	.file "/home/doctor/VM/test/hw2/performance/Sort.lama"
 
-	.stabs "/home/doctor/Lama/performance/Sort.lama",100,0,0,.Ltext
+	.stabs "/home/doctor/VM/test/hw2/performance/Sort.lama",100,0,0,.Ltext
 
 	.globl	main
 
@@ -8,15 +8,21 @@
 
 string_0:	.string	"Function %s called with incorrect arguments count. Expected: %d. Actual: %d\n"
 
-string_4:	.string	"Sort.lama"
+string_3:	.string	"Sort.lama"
 
-string_2:	.string	"bubbleSort"
+string_6:	.string	"bubbleSort"
 
-string_1:	.string	"generate"
+string_1:	.string	"bubbleSort22323"
 
-string_5:	.string	"inner_7"
+string_5:	.string	"generate"
 
-string_3:	.string	"rec_7"
+string_8:	.string	"inner_25"
+
+string_4:	.string	"inner_3"
+
+string_7:	.string	"rec_25"
+
+string_2:	.string	"rec_3"
 
 init:	.quad 0
 
@@ -210,15 +216,15 @@ ALIGNED:
 
 L1:
 
-# LINE (25)
+# LINE (47)
 
-	.stabn 68,0,25,.L0
+	.stabn 68,0,47,.L0
 
 .L0:
 
-# LINE (27)
+# LINE (49)
 
-	.stabn 68,0,27,.L1
+	.stabn 68,0,49,.L1
 
 .L1:
 
@@ -270,15 +276,15 @@ Lmain_epilogue:
 
 	.size main, .-main
 
-# LABEL ("Lgenerate")
+# LABEL ("LbubbleSort22323")
 
-Lgenerate:
+LbubbleSort22323:
 
-# BEGIN ("Lgenerate", 1, 0, [], ["n"], [{ blab="L5"; elab="L6"; names=[]; subs=[{ blab="L8"; elab="L9"; names=[]; subs=[{ blab="L19"; elab="L20"; names=[]; subs=[]; }; { blab="L12"; elab="L13"; names=[]; subs=[]; }]; }]; }])
+# BEGIN ("LbubbleSort22323", 1, 0, [], ["l"], [{ blab="L5"; elab="L6"; names=[]; subs=[{ blab="L8"; elab="L9"; names=[]; subs=[]; }]; }])
 
-	.type generate, @function
+	.type bubbleSort22323, @function
 
-	.stabs "generate:F1",36,0,0,Lgenerate
+	.stabs "bubbleSort22323:F1",36,0,0,LbubbleSort22323
 
 	.cfi_startproc
 
@@ -290,13 +296,13 @@ Lgenerate:
 	movq	%rsp,	%rbp
 	.cfi_def_cfa_register	5
 
-	subq	$LLgenerate_SIZE,	%rsp
+	subq	$LLbubbleSort22323_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
 	leaq	filler(%rip),	%rsi
-	movq	$LSLgenerate_SIZE,	%rcx
+	movq	$LSLbubbleSort22323_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -304,7 +310,7 @@ Lgenerate:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	Lgenerate_argc_correct
+	je	LbubbleSort22323_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
 	leaq	string_1(%rip),	%r11
@@ -320,7 +326,7 @@ Lgenerate:
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-Lgenerate_argc_correct:
+LbubbleSort22323_argc_correct:
 
 # SLABEL ("L5")
 
@@ -330,87 +336,30 @@ L5:
 
 L8:
 
-# LINE (24)
+# LINE (44)
 
-	.stabn 68,0,24,0
+	.stabn 68,0,44,0
 
-	.stabn 68,0,24,.L2-Lgenerate
+	.stabn 68,0,44,.L2-LbubbleSort22323
 
 .L2:
 
-# LD (Arg (0))
+# LINE (46)
 
-	movq	%rdi,	%r10
-# CJMP ("z", "L11")
+	.stabn 68,0,46,.L3-LbubbleSort22323
 
-	sarq	%r10
-	cmpq	$0,	%r10
-	jz	L11
-# SLABEL ("L12")
-
-L12:
+.L3:
 
 # LD (Arg (0))
 
 	movq	%rdi,	%r10
-# LD (Arg (0))
+# CALL ("Lrec_3", 1, true)
 
-	movq	%rdi,	%r11
-# CONST (1)
-
-	movq	$3,	%r12
-# BINOP ("-")
-
-	subq	%r12,	%r11
-	orq	$0x0001,	%r11
-# CALL ("Lgenerate", 1, false)
-
-	pushq	%rdi
-	pushq	%r10
-	movq	%r11,	%rdi
+	movq	%r10,	%rdi
+	movq	%rbp,	%rsp
+	popq	%rbp
 	movq	$1,	%r11
-	call	Lgenerate
-	popq	%r10
-	popq	%rdi
-	movq	%rax,	%r11
-# SEXP ("cons", 2)
-
-	movq	$1697575,	%r12
-	pushq	%rdi
-	pushq	%r12
-	pushq	%r11
-	pushq	%r10
-	movq	%rsp,	%rdi
-	movq	$7,	%rsi
-	call	Bsexp
-	addq	$24,	%rsp
-	popq	%rdi
-	movq	%rax,	%r10
-# SLABEL ("L13")
-
-L13:
-
-# JMP ("L7")
-
-	jmp	L7
-# LABEL ("L11")
-
-L11:
-
-# SLABEL ("L19")
-
-L19:
-
-# CONST (0)
-
-	movq	$1,	%r10
-# SLABEL ("L20")
-
-L20:
-
-# JMP ("L7")
-
-	jmp	L7
+	jmp	Lrec_3
 # SLABEL ("L9")
 
 L9:
@@ -426,7 +375,7 @@ L6:
 # END
 
 	movq	%r10,	%rax
-LLgenerate_epilogue:
+LLbubbleSort22323_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
@@ -437,21 +386,33 @@ LLgenerate_epilogue:
 	ret
 	.cfi_endproc
 
-	.set	LLgenerate_SIZE,	0
+	.set	LLbubbleSort22323_SIZE,	0
 
-	.set	LSLgenerate_SIZE,	0
+	.set	LSLbubbleSort22323_SIZE,	0
 
-	.size Lgenerate, .-Lgenerate
+	.size LbubbleSort22323, .-LbubbleSort22323
 
-# LABEL ("LbubbleSort")
+# LABEL ("Lrec_3")
 
-LbubbleSort:
+Lrec_3:
 
-# BEGIN ("LbubbleSort", 1, 0, [], ["l"], [{ blab="L21"; elab="L22"; names=[]; subs=[{ blab="L24"; elab="L25"; names=[]; subs=[]; }]; }])
+# BEGIN ("Lrec_3", 1, 1, [], ["l"], [{ blab="L11"; elab="L12"; names=[]; subs=[{ blab="L14"; elab="L15"; names=[]; subs=[{ blab="L29"; elab="L30"; names=[("l", 0)]; subs=[{ blab="L31"; elab="L32"; names=[]; subs=[]; }]; }; { blab="L22"; elab="L23"; names=[("l", 0)]; subs=[{ blab="L24"; elab="L25"; names=[]; subs=[]; }]; }]; }]; }])
 
-	.type bubbleSort, @function
+	.type rec_3, @function
 
-	.stabs "bubbleSort:F1",36,0,0,LbubbleSort
+	.stabs "rec_3:F1",36,0,0,Lrec_3
+
+	.stabs "l:1",128,0,0,-8
+
+	.stabn 192,0,0,L29-Lrec_3
+
+	.stabn 224,0,0,L30-Lrec_3
+
+	.stabs "l:1",128,0,0,-8
+
+	.stabn 192,0,0,L22-Lrec_3
+
+	.stabn 224,0,0,L23-Lrec_3
 
 	.cfi_startproc
 
@@ -463,13 +424,13 @@ LbubbleSort:
 	movq	%rsp,	%rbp
 	.cfi_def_cfa_register	5
 
-	subq	$LLbubbleSort_SIZE,	%rsp
+	subq	$LLrec_3_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
 	leaq	filler(%rip),	%rsi
-	movq	$LSLbubbleSort_SIZE,	%rcx
+	movq	$LSLrec_3_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -477,7 +438,7 @@ LbubbleSort:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	LbubbleSort_argc_correct
+	je	Lrec_3_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
 	leaq	string_2(%rip),	%r11
@@ -493,171 +454,43 @@ LbubbleSort:
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-LbubbleSort_argc_correct:
+Lrec_3_argc_correct:
 
-# SLABEL ("L21")
+# SLABEL ("L11")
 
-L21:
+L11:
 
-# SLABEL ("L24")
+# SLABEL ("L14")
 
-L24:
+L14:
 
-# LINE (18)
+# LINE (40)
 
-	.stabn 68,0,18,0
+	.stabn 68,0,40,0
 
-	.stabn 68,0,18,.L3-LbubbleSort
-
-.L3:
-
-# LINE (20)
-
-	.stabn 68,0,20,.L4-LbubbleSort
+	.stabn 68,0,40,.L4-Lrec_3
 
 .L4:
 
 # LD (Arg (0))
 
 	movq	%rdi,	%r10
-# CALL ("Lrec_7", 1, true)
-
-	movq	%r10,	%rdi
-	movq	%rbp,	%rsp
-	popq	%rbp
-	movq	$1,	%r11
-	jmp	Lrec_7
-# SLABEL ("L25")
-
-L25:
-
-# LABEL ("L23")
-
-L23:
-
-# SLABEL ("L22")
-
-L22:
-
-# END
-
-	movq	%r10,	%rax
-LLbubbleSort_epilogue:
-
-	movq	%rbp,	%rsp
-	popq	%rbp
-	.cfi_restore	rbp
-
-	.cfi_def_cfa	4, 4
-
-	ret
-	.cfi_endproc
-
-	.set	LLbubbleSort_SIZE,	0
-
-	.set	LSLbubbleSort_SIZE,	0
-
-	.size LbubbleSort, .-LbubbleSort
-
-# LABEL ("Lrec_7")
-
-Lrec_7:
-
-# BEGIN ("Lrec_7", 1, 1, [], ["l"], [{ blab="L27"; elab="L28"; names=[]; subs=[{ blab="L30"; elab="L31"; names=[]; subs=[{ blab="L45"; elab="L46"; names=[("l", 0)]; subs=[{ blab="L47"; elab="L48"; names=[]; subs=[]; }]; }; { blab="L38"; elab="L39"; names=[("l", 0)]; subs=[{ blab="L40"; elab="L41"; names=[]; subs=[]; }]; }]; }]; }])
-
-	.type rec_7, @function
-
-	.stabs "rec_7:F1",36,0,0,Lrec_7
-
-	.stabs "l:1",128,0,0,-8
-
-	.stabn 192,0,0,L45-Lrec_7
-
-	.stabn 224,0,0,L46-Lrec_7
-
-	.stabs "l:1",128,0,0,-8
-
-	.stabn 192,0,0,L38-Lrec_7
-
-	.stabn 224,0,0,L39-Lrec_7
-
-	.cfi_startproc
-
-	pushq	%rbp
-	.cfi_def_cfa_offset	8
-
-	.cfi_offset 5, -8
-
-	movq	%rsp,	%rbp
-	.cfi_def_cfa_register	5
-
-	subq	$LLrec_7_SIZE,	%rsp
-	movq	%rdi,	%r12
-	movq	%rsi,	%r13
-	movq	%rcx,	%r14
-	movq	%rsp,	%rdi
-	leaq	filler(%rip),	%rsi
-	movq	$LSLrec_7_SIZE,	%rcx
-	rep movsq	
-	movq	%r12,	%rdi
-	movq	%r13,	%rsi
-	movq	%r14,	%rcx
-# Check arguments count
-
-	cmpq	$1,	%r11
-	je	Lrec_7_argc_correct
-	movq	%r11,	%r13
-	movq	$1,	%r12
-	leaq	string_3(%rip),	%r11
-	leaq	string_0(%rip),	%r10
-	pushq	%rdi
-	pushq	filler(%rip)
-	movq	%r13,	%rcx
-	movq	%r12,	%rdx
-	movq	%r11,	%rsi
-	movq	%r10,	%rdi
-	movq	$4,	%r11
-	call	failure
-	addq	$8,	%rsp
-	popq	%rdi
-	movq	%rax,	%r10
-Lrec_7_argc_correct:
-
-# SLABEL ("L27")
-
-L27:
-
-# SLABEL ("L30")
-
-L30:
-
-# LINE (14)
-
-	.stabn 68,0,14,0
-
-	.stabn 68,0,14,.L5-Lrec_7
-
-.L5:
-
-# LD (Arg (0))
-
-	movq	%rdi,	%r10
-# CALL ("Linner_7", 1, false)
+# CALL ("Linner_3", 1, false)
 
 	pushq	%rdi
 	pushq	filler(%rip)
 	movq	%r10,	%rdi
 	movq	$1,	%r11
-	call	Linner_7
+	call	Linner_3
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
 # DUP
 
 	movq	%r10,	%r11
-# SLABEL ("L38")
+# SLABEL ("L22")
 
-L38:
+L22:
 
 # DUP
 
@@ -678,23 +511,23 @@ L38:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r12
-# CJMP ("nz", "L36")
+# CJMP ("nz", "L20")
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	L36
-# LABEL ("L37")
+	jnz	L20
+# LABEL ("L21")
 
-L37:
+L21:
 
 # DROP
 
-# JMP ("L35")
+# JMP ("L19")
 
-	jmp	L35
-# LABEL ("L36")
+	jmp	L19
+# LABEL ("L20")
 
-L36:
+L20:
 
 # DUP
 
@@ -728,11 +561,11 @@ L36:
 	salq	%rax
 	orq	$0x0001,	%rax
 	movq	%rax,	%r12
-# CJMP ("z", "L37")
+# CJMP ("z", "L21")
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jz	L37
+	jz	L21
 # DUP
 
 	movq	%r11,	%r12
@@ -782,204 +615,204 @@ L36:
 
 # DROP
 
-# SLABEL ("L40")
+# SLABEL ("L24")
 
-L40:
+L24:
 
-# LINE (15)
+# LINE (41)
 
-	.stabn 68,0,15,.L6-Lrec_7
+	.stabn 68,0,41,.L5-Lrec_3
+
+.L5:
+
+# LD (Local (0))
+
+	movq	-8(%rbp),	%r10
+# CALL ("Lrec_3", 1, true)
+
+	movq	%r10,	%rdi
+	movq	%rbp,	%rsp
+	popq	%rbp
+	movq	$1,	%r11
+	jmp	Lrec_3
+# SLABEL ("L25")
+
+L25:
+
+# JMP ("L13")
+
+	jmp	L13
+# SLABEL ("L23")
+
+L23:
+
+# SLABEL ("L29")
+
+L29:
+
+# LABEL ("L19")
+
+L19:
+
+# DUP
+
+	movq	%r10,	%r11
+# DUP
+
+	movq	%r11,	%r12
+# ARRAY (2)
+
+	movq	$5,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Barray_patt
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CJMP ("nz", "L27")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jnz	L27
+# LABEL ("L28")
+
+L28:
+
+# DROP
+
+# JMP ("L16")
+
+	jmp	L16
+# LABEL ("L27")
+
+L27:
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# BINOP ("==")
+
+	xorq	%rax,	%rax
+	cmpq	%r13,	%r12
+	sete	%al
+	salq	%rax
+	orq	$0x0001,	%rax
+	movq	%rax,	%r12
+# CJMP ("z", "L28")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jz	L28
+# DUP
+
+	movq	%r11,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (0))
+
+	movq	%r11,	-8(%rbp)
+# DROP
+
+# DROP
+
+# SLABEL ("L31")
+
+L31:
+
+# LINE (42)
+
+	.stabn 68,0,42,.L6-Lrec_3
 
 .L6:
 
 # LD (Local (0))
 
 	movq	-8(%rbp),	%r10
-# CALL ("Lrec_7", 1, true)
-
-	movq	%r10,	%rdi
-	movq	%rbp,	%rsp
-	popq	%rbp
-	movq	$1,	%r11
-	jmp	Lrec_7
-# SLABEL ("L41")
-
-L41:
-
-# JMP ("L29")
-
-	jmp	L29
-# SLABEL ("L39")
-
-L39:
-
-# SLABEL ("L45")
-
-L45:
-
-# LABEL ("L35")
-
-L35:
-
-# DUP
-
-	movq	%r10,	%r11
-# DUP
-
-	movq	%r11,	%r12
-# ARRAY (2)
-
-	movq	$5,	%r13
-	pushq	%rdi
-	pushq	%r10
-	pushq	%r11
-	pushq	filler(%rip)
-	movq	%r13,	%rsi
-	movq	%r12,	%rdi
-	movq	$2,	%r11
-	call	Barray_patt
-	addq	$8,	%rsp
-	popq	%r11
-	popq	%r10
-	popq	%rdi
-	movq	%rax,	%r12
-# CJMP ("nz", "L43")
-
-	sarq	%r12
-	cmpq	$0,	%r12
-	jnz	L43
-# LABEL ("L44")
-
-L44:
-
-# DROP
-
-# JMP ("L32")
-
-	jmp	L32
-# LABEL ("L43")
-
-L43:
-
-# DUP
-
-	movq	%r11,	%r12
-# CONST (0)
-
-	movq	$1,	%r13
-# ELEM
-
-	pushq	%rdi
-	pushq	%r10
-	pushq	%r11
-	pushq	filler(%rip)
-	movq	%r13,	%rsi
-	movq	%r12,	%rdi
-	movq	$2,	%r11
-	call	Belem
-	addq	$8,	%rsp
-	popq	%r11
-	popq	%r10
-	popq	%rdi
-	movq	%rax,	%r12
-# CONST (0)
-
-	movq	$1,	%r13
-# BINOP ("==")
-
-	xorq	%rax,	%rax
-	cmpq	%r13,	%r12
-	sete	%al
-	salq	%rax
-	orq	$0x0001,	%rax
-	movq	%rax,	%r12
-# CJMP ("z", "L44")
-
-	sarq	%r12
-	cmpq	$0,	%r12
-	jz	L44
-# DUP
-
-	movq	%r11,	%r12
-# CONST (1)
-
-	movq	$3,	%r13
-# ELEM
-
-	pushq	%rdi
-	pushq	%r10
-	pushq	%r11
-	pushq	filler(%rip)
-	movq	%r13,	%rsi
-	movq	%r12,	%rdi
-	movq	$2,	%r11
-	call	Belem
-	addq	$8,	%rsp
-	popq	%r11
-	popq	%r10
-	popq	%rdi
-	movq	%rax,	%r12
-# DROP
-
-# DROP
-
-# DUP
-
-	movq	%r10,	%r11
-# CONST (1)
-
-	movq	$3,	%r12
-# ELEM
-
-	pushq	%rdi
-	pushq	%r10
-	movq	%r12,	%rsi
-	movq	%r11,	%rdi
-	movq	$2,	%r11
-	call	Belem
-	popq	%r10
-	popq	%rdi
-	movq	%rax,	%r11
-# ST (Local (0))
-
-	movq	%r11,	-8(%rbp)
-# DROP
-
-# DROP
-
-# SLABEL ("L47")
-
-L47:
-
-# LINE (16)
-
-	.stabn 68,0,16,.L7-Lrec_7
-
-.L7:
-
-# LD (Local (0))
-
-	movq	-8(%rbp),	%r10
-# SLABEL ("L48")
-
-L48:
-
-# SLABEL ("L46")
-
-L46:
-
-# JMP ("L29")
-
-	jmp	L29
-# LABEL ("L32")
+# SLABEL ("L32")
 
 L32:
 
-# FAIL ((14, 9), true)
+# SLABEL ("L30")
+
+L30:
+
+# JMP ("L13")
+
+	jmp	L13
+# LABEL ("L16")
+
+L16:
+
+# FAIL ((40, 9), true)
 
 	movq	$19,	%r14
-	movq	$29,	%r13
-	leaq	string_4(%rip),	%r12
+	movq	$81,	%r13
+	leaq	string_3(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%r10
@@ -992,25 +825,25 @@ L32:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r11
-# JMP ("L29")
+# JMP ("L13")
 
-	jmp	L29
-# SLABEL ("L31")
+	jmp	L13
+# SLABEL ("L15")
 
-L31:
+L15:
 
-# LABEL ("L29")
+# LABEL ("L13")
 
-L29:
+L13:
 
-# SLABEL ("L28")
+# SLABEL ("L12")
 
-L28:
+L12:
 
 # END
 
 	movq	%r10,	%rax
-LLrec_7_epilogue:
+LLrec_3_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
@@ -1021,21 +854,21 @@ LLrec_7_epilogue:
 	ret
 	.cfi_endproc
 
-	.set	LLrec_7_SIZE,	16
+	.set	LLrec_3_SIZE,	16
 
-	.set	LSLrec_7_SIZE,	1
+	.set	LSLrec_3_SIZE,	1
 
-	.size Lrec_7, .-Lrec_7
+	.size Lrec_3, .-Lrec_3
 
-# LABEL ("Linner_7")
+# LABEL ("Linner_3")
 
-Linner_7:
+Linner_3:
 
-# BEGIN ("Linner_7", 1, 6, [], ["l"], [{ blab="L49"; elab="L50"; names=[]; subs=[{ blab="L52"; elab="L53"; names=[]; subs=[{ blab="L95"; elab="L96"; names=[]; subs=[{ blab="L97"; elab="L98"; names=[]; subs=[]; }]; }; { blab="L61"; elab="L62"; names=[("x", 3); ("z", 2); ("y", 1); ("tl", 0)]; subs=[{ blab="L63"; elab="L64"; names=[]; subs=[{ blab="L80"; elab="L81"; names=[]; subs=[{ blab="L87"; elab="L88"; names=[("f", 5); ("z", 4)]; subs=[{ blab="L89"; elab="L90"; names=[]; subs=[]; }]; }]; }; { blab="L69"; elab="L70"; names=[]; subs=[]; }]; }]; }]; }]; }])
+# BEGIN ("Linner_3", 1, 6, [], ["l"], [{ blab="L33"; elab="L34"; names=[]; subs=[{ blab="L36"; elab="L37"; names=[]; subs=[{ blab="L79"; elab="L80"; names=[]; subs=[{ blab="L81"; elab="L82"; names=[]; subs=[]; }]; }; { blab="L45"; elab="L46"; names=[("x", 3); ("z", 2); ("y", 1); ("tl", 0)]; subs=[{ blab="L47"; elab="L48"; names=[]; subs=[{ blab="L64"; elab="L65"; names=[]; subs=[{ blab="L71"; elab="L72"; names=[("f", 5); ("z", 4)]; subs=[{ blab="L73"; elab="L74"; names=[]; subs=[]; }]; }]; }; { blab="L53"; elab="L54"; names=[]; subs=[]; }]; }]; }]; }]; }])
 
-	.type inner_7, @function
+	.type inner_3, @function
 
-	.stabs "inner_7:F1",36,0,0,Linner_7
+	.stabs "inner_3:F1",36,0,0,Linner_3
 
 	.stabs "x:1",128,0,0,-32
 
@@ -1045,17 +878,17 @@ Linner_7:
 
 	.stabs "tl:1",128,0,0,-8
 
-	.stabn 192,0,0,L61-Linner_7
+	.stabn 192,0,0,L45-Linner_3
 
 	.stabs "f:1",128,0,0,-48
 
 	.stabs "z:1",128,0,0,-40
 
-	.stabn 192,0,0,L87-Linner_7
+	.stabn 192,0,0,L71-Linner_3
 
-	.stabn 224,0,0,L88-Linner_7
+	.stabn 224,0,0,L72-Linner_3
 
-	.stabn 224,0,0,L62-Linner_7
+	.stabn 224,0,0,L46-Linner_3
 
 	.cfi_startproc
 
@@ -1067,13 +900,13 @@ Linner_7:
 	movq	%rsp,	%rbp
 	.cfi_def_cfa_register	5
 
-	subq	$LLinner_7_SIZE,	%rsp
+	subq	$LLinner_3_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
 	leaq	filler(%rip),	%rsi
-	movq	$LSLinner_7_SIZE,	%rcx
+	movq	$LSLinner_3_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -1081,10 +914,10 @@ Linner_7:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	Linner_7_argc_correct
+	je	Linner_3_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
-	leaq	string_5(%rip),	%r11
+	leaq	string_4(%rip),	%r11
 	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	filler(%rip)
@@ -1097,23 +930,23 @@ Linner_7:
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-Linner_7_argc_correct:
+Linner_3_argc_correct:
 
-# SLABEL ("L49")
+# SLABEL ("L33")
 
-L49:
+L33:
 
-# SLABEL ("L52")
+# SLABEL ("L36")
 
-L52:
+L36:
 
-# LINE (3)
+# LINE (29)
 
-	.stabn 68,0,3,0
+	.stabn 68,0,29,0
 
-	.stabn 68,0,3,.L8-Linner_7
+	.stabn 68,0,29,.L7-Linner_3
 
-.L8:
+.L7:
 
 # LD (Arg (0))
 
@@ -1121,9 +954,9 @@ L52:
 # DUP
 
 	movq	%r10,	%r11
-# SLABEL ("L61")
+# SLABEL ("L45")
 
-L61:
+L45:
 
 # DUP
 
@@ -1146,23 +979,23 @@ L61:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r12
-# CJMP ("nz", "L57")
+# CJMP ("nz", "L41")
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	L57
-# LABEL ("L58")
+	jnz	L41
+# LABEL ("L42")
 
-L58:
+L42:
 
 # DROP
 
-# JMP ("L56")
+# JMP ("L40")
 
-	jmp	L56
-# LABEL ("L57")
+	jmp	L40
+# LABEL ("L41")
 
-L57:
+L41:
 
 # DUP
 
@@ -1229,23 +1062,23 @@ L57:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r13
-# CJMP ("nz", "L59")
+# CJMP ("nz", "L43")
 
 	sarq	%r13
 	cmpq	$0,	%r13
-	jnz	L59
-# LABEL ("L60")
+	jnz	L43
+# LABEL ("L44")
 
-L60:
+L44:
 
 # DROP
 
-# JMP ("L58")
+# JMP ("L42")
 
-	jmp	L58
-# LABEL ("L59")
+	jmp	L42
+# LABEL ("L43")
 
-L59:
+L43:
 
 # DUP
 
@@ -1415,15 +1248,15 @@ L59:
 
 # DROP
 
-# SLABEL ("L63")
+# SLABEL ("L47")
 
-L63:
+L47:
 
-# LINE (5)
+# LINE (31)
 
-	.stabn 68,0,5,.L9-Linner_7
+	.stabn 68,0,31,.L8-Linner_3
 
-.L9:
+.L8:
 
 # LD (Local (3))
 
@@ -1439,23 +1272,23 @@ L63:
 	salq	%rax
 	orq	$0x0001,	%rax
 	movq	%rax,	%r10
-# CJMP ("z", "L66")
+# CJMP ("z", "L50")
 
 	sarq	%r10
 	cmpq	$0,	%r10
-	jz	L66
-# SLABEL ("L69")
+	jz	L50
+# SLABEL ("L53")
 
-L69:
+L53:
 
 # CONST (1)
 
 	movq	$3,	%r10
-# LINE (6)
+# LINE (32)
 
-	.stabn 68,0,6,.L10-Linner_7
+	.stabn 68,0,32,.L9-Linner_3
 
-.L10:
+.L9:
 
 # LD (Local (1))
 
@@ -1483,7 +1316,7 @@ L69:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r12
-# CALL ("Linner_7", 1, false)
+# CALL ("Linner_3", 1, false)
 
 	pushq	%rdi
 	pushq	%r10
@@ -1491,7 +1324,7 @@ L69:
 	pushq	filler(%rip)
 	movq	%r12,	%rdi
 	movq	$1,	%r11
-	call	Linner_7
+	call	Linner_3
 	addq	$8,	%rsp
 	popq	%r11
 	popq	%r10
@@ -1543,46 +1376,46 @@ L69:
 	addq	$24,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-# SLABEL ("L70")
+# SLABEL ("L54")
 
-L70:
+L54:
 
-# JMP ("L51")
+# JMP ("L35")
 
-	jmp	L51
-# LABEL ("L66")
+	jmp	L35
+# LABEL ("L50")
 
-L66:
+L50:
 
-# SLABEL ("L80")
+# SLABEL ("L64")
 
-L80:
+L64:
 
-# LINE (7)
+# LINE (33)
 
-	.stabn 68,0,7,.L11-Linner_7
+	.stabn 68,0,33,.L10-Linner_3
 
-.L11:
+.L10:
 
 # LD (Local (2))
 
 	movq	-24(%rbp),	%r10
-# CALL ("Linner_7", 1, false)
+# CALL ("Linner_3", 1, false)
 
 	pushq	%rdi
 	pushq	filler(%rip)
 	movq	%r10,	%rdi
 	movq	$1,	%r11
-	call	Linner_7
+	call	Linner_3
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
 # DUP
 
 	movq	%r10,	%r11
-# SLABEL ("L87")
+# SLABEL ("L71")
 
-L87:
+L71:
 
 # DUP
 
@@ -1603,23 +1436,23 @@ L87:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r12
-# CJMP ("nz", "L85")
+# CJMP ("nz", "L69")
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	L85
-# LABEL ("L86")
+	jnz	L69
+# LABEL ("L70")
 
-L86:
+L70:
 
 # DROP
 
-# JMP ("L82")
+# JMP ("L66")
 
-	jmp	L82
-# LABEL ("L85")
+	jmp	L66
+# LABEL ("L69")
 
-L85:
+L69:
 
 # DUP
 
@@ -1715,9 +1548,9 @@ L85:
 
 # DROP
 
-# SLABEL ("L89")
+# SLABEL ("L73")
 
-L89:
+L73:
 
 # LD (Local (5))
 
@@ -1756,26 +1589,26 @@ L89:
 	addq	$24,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-# SLABEL ("L90")
+# SLABEL ("L74")
 
-L90:
+L74:
 
-# SLABEL ("L88")
+# SLABEL ("L72")
 
-L88:
+L72:
 
-# JMP ("L51")
+# JMP ("L35")
 
-	jmp	L51
-# LABEL ("L82")
+	jmp	L35
+# LABEL ("L66")
 
-L82:
+L66:
 
-# FAIL ((7, 17), true)
+# FAIL ((33, 17), true)
 
 	movq	$35,	%r14
-	movq	$15,	%r13
-	leaq	string_4(%rip),	%r12
+	movq	$67,	%r13
+	leaq	string_3(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%r10
@@ -1788,30 +1621,30 @@ L82:
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r11
-# JMP ("L51")
+# JMP ("L35")
 
-	jmp	L51
-# SLABEL ("L81")
+	jmp	L35
+# SLABEL ("L65")
 
-L81:
+L65:
 
-# SLABEL ("L64")
+# SLABEL ("L48")
 
-L64:
+L48:
 
-# JMP ("L51")
+# JMP ("L35")
 
-# SLABEL ("L62")
+# SLABEL ("L46")
 
-L62:
+L46:
 
-# SLABEL ("L95")
+# SLABEL ("L79")
 
-L95:
+L79:
 
-# LABEL ("L56")
+# LABEL ("L40")
 
-L56:
+L40:
 
 # DUP
 
@@ -1820,18 +1653,18 @@ L56:
 
 # DROP
 
-# SLABEL ("L97")
+# SLABEL ("L81")
 
-L97:
+L81:
 
 # CONST (0)
 
 	movq	$1,	%r10
-# LINE (9)
+# LINE (35)
 
-	.stabn 68,0,9,.L12-Linner_7
+	.stabn 68,0,35,.L11-Linner_3
 
-.L12:
+.L11:
 
 # LD (Arg (0))
 
@@ -1848,33 +1681,33 @@ L97:
 	addq	$24,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-# SLABEL ("L98")
+# SLABEL ("L82")
 
-L98:
+L82:
 
-# SLABEL ("L96")
+# SLABEL ("L80")
 
-L96:
+L80:
 
-# JMP ("L51")
+# JMP ("L35")
 
-	jmp	L51
-# SLABEL ("L53")
+	jmp	L35
+# SLABEL ("L37")
 
-L53:
+L37:
 
-# LABEL ("L51")
+# LABEL ("L35")
 
-L51:
+L35:
 
-# SLABEL ("L50")
+# SLABEL ("L34")
 
-L50:
+L34:
 
 # END
 
 	movq	%r10,	%rax
-LLinner_7_epilogue:
+LLinner_3_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
@@ -1885,9 +1718,1630 @@ LLinner_7_epilogue:
 	ret
 	.cfi_endproc
 
-	.set	LLinner_7_SIZE,	64
+	.set	LLinner_3_SIZE,	64
 
-	.set	LSLinner_7_SIZE,	7
+	.set	LSLinner_3_SIZE,	7
 
-	.size Linner_7, .-Linner_7
+	.size Linner_3, .-Linner_3
+
+# LABEL ("Lgenerate")
+
+Lgenerate:
+
+# BEGIN ("Lgenerate", 1, 0, [], ["n"], [{ blab="L85"; elab="L86"; names=[]; subs=[{ blab="L88"; elab="L89"; names=[]; subs=[{ blab="L99"; elab="L100"; names=[]; subs=[]; }; { blab="L92"; elab="L93"; names=[]; subs=[]; }]; }]; }])
+
+	.type generate, @function
+
+	.stabs "generate:F1",36,0,0,Lgenerate
+
+	.cfi_startproc
+
+	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
+	movq	%rsp,	%rbp
+	.cfi_def_cfa_register	5
+
+	subq	$LLgenerate_SIZE,	%rsp
+	movq	%rdi,	%r12
+	movq	%rsi,	%r13
+	movq	%rcx,	%r14
+	movq	%rsp,	%rdi
+	leaq	filler(%rip),	%rsi
+	movq	$LSLgenerate_SIZE,	%rcx
+	rep movsq	
+	movq	%r12,	%rdi
+	movq	%r13,	%rsi
+	movq	%r14,	%rcx
+# Check arguments count
+
+	cmpq	$1,	%r11
+	je	Lgenerate_argc_correct
+	movq	%r11,	%r13
+	movq	$1,	%r12
+	leaq	string_5(%rip),	%r11
+	leaq	string_0(%rip),	%r10
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r13,	%rcx
+	movq	%r12,	%rdx
+	movq	%r11,	%rsi
+	movq	%r10,	%rdi
+	movq	$4,	%r11
+	call	failure
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+Lgenerate_argc_correct:
+
+# SLABEL ("L85")
+
+L85:
+
+# SLABEL ("L88")
+
+L88:
+
+# LINE (24)
+
+	.stabn 68,0,24,0
+
+	.stabn 68,0,24,.L12-Lgenerate
+
+.L12:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r10
+# CJMP ("z", "L91")
+
+	sarq	%r10
+	cmpq	$0,	%r10
+	jz	L91
+# SLABEL ("L92")
+
+L92:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r10
+# LD (Arg (0))
+
+	movq	%rdi,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# BINOP ("-")
+
+	subq	%r12,	%r11
+	orq	$0x0001,	%r11
+# CALL ("Lgenerate", 1, false)
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r11,	%rdi
+	movq	$1,	%r11
+	call	Lgenerate
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# SEXP ("cons", 2)
+
+	movq	$1697575,	%r12
+	pushq	%rdi
+	pushq	%r12
+	pushq	%r11
+	pushq	%r10
+	movq	%rsp,	%rdi
+	movq	$7,	%rsi
+	call	Bsexp
+	addq	$24,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# SLABEL ("L93")
+
+L93:
+
+# JMP ("L87")
+
+	jmp	L87
+# LABEL ("L91")
+
+L91:
+
+# SLABEL ("L99")
+
+L99:
+
+# CONST (0)
+
+	movq	$1,	%r10
+# SLABEL ("L100")
+
+L100:
+
+# JMP ("L87")
+
+	jmp	L87
+# SLABEL ("L89")
+
+L89:
+
+# LABEL ("L87")
+
+L87:
+
+# SLABEL ("L86")
+
+L86:
+
+# END
+
+	movq	%r10,	%rax
+LLgenerate_epilogue:
+
+	movq	%rbp,	%rsp
+	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
+	ret
+	.cfi_endproc
+
+	.set	LLgenerate_SIZE,	0
+
+	.set	LSLgenerate_SIZE,	0
+
+	.size Lgenerate, .-Lgenerate
+
+# LABEL ("LbubbleSort")
+
+LbubbleSort:
+
+# BEGIN ("LbubbleSort", 1, 0, [], ["l"], [{ blab="L101"; elab="L102"; names=[]; subs=[{ blab="L104"; elab="L105"; names=[]; subs=[]; }]; }])
+
+	.type bubbleSort, @function
+
+	.stabs "bubbleSort:F1",36,0,0,LbubbleSort
+
+	.cfi_startproc
+
+	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
+	movq	%rsp,	%rbp
+	.cfi_def_cfa_register	5
+
+	subq	$LLbubbleSort_SIZE,	%rsp
+	movq	%rdi,	%r12
+	movq	%rsi,	%r13
+	movq	%rcx,	%r14
+	movq	%rsp,	%rdi
+	leaq	filler(%rip),	%rsi
+	movq	$LSLbubbleSort_SIZE,	%rcx
+	rep movsq	
+	movq	%r12,	%rdi
+	movq	%r13,	%rsi
+	movq	%r14,	%rcx
+# Check arguments count
+
+	cmpq	$1,	%r11
+	je	LbubbleSort_argc_correct
+	movq	%r11,	%r13
+	movq	$1,	%r12
+	leaq	string_6(%rip),	%r11
+	leaq	string_0(%rip),	%r10
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r13,	%rcx
+	movq	%r12,	%rdx
+	movq	%r11,	%rsi
+	movq	%r10,	%rdi
+	movq	$4,	%r11
+	call	failure
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+LbubbleSort_argc_correct:
+
+# SLABEL ("L101")
+
+L101:
+
+# SLABEL ("L104")
+
+L104:
+
+# LINE (18)
+
+	.stabn 68,0,18,0
+
+	.stabn 68,0,18,.L13-LbubbleSort
+
+.L13:
+
+# LINE (20)
+
+	.stabn 68,0,20,.L14-LbubbleSort
+
+.L14:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r10
+# CALL ("Lrec_25", 1, true)
+
+	movq	%r10,	%rdi
+	movq	%rbp,	%rsp
+	popq	%rbp
+	movq	$1,	%r11
+	jmp	Lrec_25
+# SLABEL ("L105")
+
+L105:
+
+# LABEL ("L103")
+
+L103:
+
+# SLABEL ("L102")
+
+L102:
+
+# END
+
+	movq	%r10,	%rax
+LLbubbleSort_epilogue:
+
+	movq	%rbp,	%rsp
+	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
+	ret
+	.cfi_endproc
+
+	.set	LLbubbleSort_SIZE,	0
+
+	.set	LSLbubbleSort_SIZE,	0
+
+	.size LbubbleSort, .-LbubbleSort
+
+# LABEL ("Lrec_25")
+
+Lrec_25:
+
+# BEGIN ("Lrec_25", 1, 1, [], ["l"], [{ blab="L107"; elab="L108"; names=[]; subs=[{ blab="L110"; elab="L111"; names=[]; subs=[{ blab="L125"; elab="L126"; names=[("l", 0)]; subs=[{ blab="L127"; elab="L128"; names=[]; subs=[]; }]; }; { blab="L118"; elab="L119"; names=[("l", 0)]; subs=[{ blab="L120"; elab="L121"; names=[]; subs=[]; }]; }]; }]; }])
+
+	.type rec_25, @function
+
+	.stabs "rec_25:F1",36,0,0,Lrec_25
+
+	.stabs "l:1",128,0,0,-8
+
+	.stabn 192,0,0,L125-Lrec_25
+
+	.stabn 224,0,0,L126-Lrec_25
+
+	.stabs "l:1",128,0,0,-8
+
+	.stabn 192,0,0,L118-Lrec_25
+
+	.stabn 224,0,0,L119-Lrec_25
+
+	.cfi_startproc
+
+	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
+	movq	%rsp,	%rbp
+	.cfi_def_cfa_register	5
+
+	subq	$LLrec_25_SIZE,	%rsp
+	movq	%rdi,	%r12
+	movq	%rsi,	%r13
+	movq	%rcx,	%r14
+	movq	%rsp,	%rdi
+	leaq	filler(%rip),	%rsi
+	movq	$LSLrec_25_SIZE,	%rcx
+	rep movsq	
+	movq	%r12,	%rdi
+	movq	%r13,	%rsi
+	movq	%r14,	%rcx
+# Check arguments count
+
+	cmpq	$1,	%r11
+	je	Lrec_25_argc_correct
+	movq	%r11,	%r13
+	movq	$1,	%r12
+	leaq	string_7(%rip),	%r11
+	leaq	string_0(%rip),	%r10
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r13,	%rcx
+	movq	%r12,	%rdx
+	movq	%r11,	%rsi
+	movq	%r10,	%rdi
+	movq	$4,	%r11
+	call	failure
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+Lrec_25_argc_correct:
+
+# SLABEL ("L107")
+
+L107:
+
+# SLABEL ("L110")
+
+L110:
+
+# LINE (14)
+
+	.stabn 68,0,14,0
+
+	.stabn 68,0,14,.L15-Lrec_25
+
+.L15:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r10
+# CALL ("Linner_25", 1, false)
+
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r10,	%rdi
+	movq	$1,	%r11
+	call	Linner_25
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# DUP
+
+	movq	%r10,	%r11
+# SLABEL ("L118")
+
+L118:
+
+# DUP
+
+	movq	%r11,	%r12
+# ARRAY (2)
+
+	movq	$5,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Barray_patt
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CJMP ("nz", "L116")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jnz	L116
+# LABEL ("L117")
+
+L117:
+
+# DROP
+
+# JMP ("L115")
+
+	jmp	L115
+# LABEL ("L116")
+
+L116:
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# BINOP ("==")
+
+	xorq	%rax,	%rax
+	cmpq	%r13,	%r12
+	sete	%al
+	salq	%rax
+	orq	$0x0001,	%rax
+	movq	%rax,	%r12
+# CJMP ("z", "L117")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jz	L117
+# DUP
+
+	movq	%r11,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (0))
+
+	movq	%r11,	-8(%rbp)
+# DROP
+
+# DROP
+
+# SLABEL ("L120")
+
+L120:
+
+# LINE (15)
+
+	.stabn 68,0,15,.L16-Lrec_25
+
+.L16:
+
+# LD (Local (0))
+
+	movq	-8(%rbp),	%r10
+# CALL ("Lrec_25", 1, true)
+
+	movq	%r10,	%rdi
+	movq	%rbp,	%rsp
+	popq	%rbp
+	movq	$1,	%r11
+	jmp	Lrec_25
+# SLABEL ("L121")
+
+L121:
+
+# JMP ("L109")
+
+	jmp	L109
+# SLABEL ("L119")
+
+L119:
+
+# SLABEL ("L125")
+
+L125:
+
+# LABEL ("L115")
+
+L115:
+
+# DUP
+
+	movq	%r10,	%r11
+# DUP
+
+	movq	%r11,	%r12
+# ARRAY (2)
+
+	movq	$5,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Barray_patt
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CJMP ("nz", "L123")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jnz	L123
+# LABEL ("L124")
+
+L124:
+
+# DROP
+
+# JMP ("L112")
+
+	jmp	L112
+# LABEL ("L123")
+
+L123:
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# BINOP ("==")
+
+	xorq	%rax,	%rax
+	cmpq	%r13,	%r12
+	sete	%al
+	salq	%rax
+	orq	$0x0001,	%rax
+	movq	%rax,	%r12
+# CJMP ("z", "L124")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jz	L124
+# DUP
+
+	movq	%r11,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (0))
+
+	movq	%r11,	-8(%rbp)
+# DROP
+
+# DROP
+
+# SLABEL ("L127")
+
+L127:
+
+# LINE (16)
+
+	.stabn 68,0,16,.L17-Lrec_25
+
+.L17:
+
+# LD (Local (0))
+
+	movq	-8(%rbp),	%r10
+# SLABEL ("L128")
+
+L128:
+
+# SLABEL ("L126")
+
+L126:
+
+# JMP ("L109")
+
+	jmp	L109
+# LABEL ("L112")
+
+L112:
+
+# FAIL ((14, 9), true)
+
+	movq	$19,	%r14
+	movq	$29,	%r13
+	leaq	string_3(%rip),	%r12
+	movq	%r10,	%r11
+	pushq	%rdi
+	pushq	%r10
+	movq	%r14,	%rcx
+	movq	%r13,	%rdx
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$4,	%r11
+	call	Bmatch_failure
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# JMP ("L109")
+
+	jmp	L109
+# SLABEL ("L111")
+
+L111:
+
+# LABEL ("L109")
+
+L109:
+
+# SLABEL ("L108")
+
+L108:
+
+# END
+
+	movq	%r10,	%rax
+LLrec_25_epilogue:
+
+	movq	%rbp,	%rsp
+	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
+	ret
+	.cfi_endproc
+
+	.set	LLrec_25_SIZE,	16
+
+	.set	LSLrec_25_SIZE,	1
+
+	.size Lrec_25, .-Lrec_25
+
+# LABEL ("Linner_25")
+
+Linner_25:
+
+# BEGIN ("Linner_25", 1, 6, [], ["l"], [{ blab="L129"; elab="L130"; names=[]; subs=[{ blab="L132"; elab="L133"; names=[]; subs=[{ blab="L175"; elab="L176"; names=[]; subs=[{ blab="L177"; elab="L178"; names=[]; subs=[]; }]; }; { blab="L141"; elab="L142"; names=[("x", 3); ("z", 2); ("y", 1); ("tl", 0)]; subs=[{ blab="L143"; elab="L144"; names=[]; subs=[{ blab="L160"; elab="L161"; names=[]; subs=[{ blab="L167"; elab="L168"; names=[("f", 5); ("z", 4)]; subs=[{ blab="L169"; elab="L170"; names=[]; subs=[]; }]; }]; }; { blab="L149"; elab="L150"; names=[]; subs=[]; }]; }]; }]; }]; }])
+
+	.type inner_25, @function
+
+	.stabs "inner_25:F1",36,0,0,Linner_25
+
+	.stabs "x:1",128,0,0,-32
+
+	.stabs "z:1",128,0,0,-24
+
+	.stabs "y:1",128,0,0,-16
+
+	.stabs "tl:1",128,0,0,-8
+
+	.stabn 192,0,0,L141-Linner_25
+
+	.stabs "f:1",128,0,0,-48
+
+	.stabs "z:1",128,0,0,-40
+
+	.stabn 192,0,0,L167-Linner_25
+
+	.stabn 224,0,0,L168-Linner_25
+
+	.stabn 224,0,0,L142-Linner_25
+
+	.cfi_startproc
+
+	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
+	movq	%rsp,	%rbp
+	.cfi_def_cfa_register	5
+
+	subq	$LLinner_25_SIZE,	%rsp
+	movq	%rdi,	%r12
+	movq	%rsi,	%r13
+	movq	%rcx,	%r14
+	movq	%rsp,	%rdi
+	leaq	filler(%rip),	%rsi
+	movq	$LSLinner_25_SIZE,	%rcx
+	rep movsq	
+	movq	%r12,	%rdi
+	movq	%r13,	%rsi
+	movq	%r14,	%rcx
+# Check arguments count
+
+	cmpq	$1,	%r11
+	je	Linner_25_argc_correct
+	movq	%r11,	%r13
+	movq	$1,	%r12
+	leaq	string_8(%rip),	%r11
+	leaq	string_0(%rip),	%r10
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r13,	%rcx
+	movq	%r12,	%rdx
+	movq	%r11,	%rsi
+	movq	%r10,	%rdi
+	movq	$4,	%r11
+	call	failure
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+Linner_25_argc_correct:
+
+# SLABEL ("L129")
+
+L129:
+
+# SLABEL ("L132")
+
+L132:
+
+# LINE (3)
+
+	.stabn 68,0,3,0
+
+	.stabn 68,0,3,.L18-Linner_25
+
+.L18:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r10
+# DUP
+
+	movq	%r10,	%r11
+# SLABEL ("L141")
+
+L141:
+
+# DUP
+
+	movq	%r11,	%r12
+# TAG ("cons", 2)
+
+	movq	$1697575,	%r13
+	movq	$5,	%r14
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r14,	%rdx
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$3,	%r11
+	call	Btag
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CJMP ("nz", "L137")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jnz	L137
+# LABEL ("L138")
+
+L138:
+
+# DROP
+
+# JMP ("L136")
+
+	jmp	L136
+# LABEL ("L137")
+
+L137:
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DUP
+
+	movq	%r12,	%r13
+# TAG ("cons", 2)
+
+	movq	$1697575,	%r14
+	movq	$5,	-56(%rbp)
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	%r12
+	movq	-56(%rbp),	%rdx
+	movq	%r14,	%rsi
+	movq	%r13,	%rdi
+	movq	$3,	%r11
+	call	Btag
+	popq	%r12
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r13
+# CJMP ("nz", "L139")
+
+	sarq	%r13
+	cmpq	$0,	%r13
+	jnz	L139
+# LABEL ("L140")
+
+L140:
+
+# DROP
+
+# JMP ("L138")
+
+	jmp	L138
+# LABEL ("L139")
+
+L139:
+
+# DUP
+
+	movq	%r12,	%r13
+# CONST (0)
+
+	movq	$1,	%r14
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	%r12
+	movq	%r14,	%rsi
+	movq	%r13,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r12
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r13
+# DROP
+
+# DUP
+
+	movq	%r12,	%r13
+# CONST (1)
+
+	movq	$3,	%r14
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	%r12
+	movq	%r14,	%rsi
+	movq	%r13,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r12
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r13
+# DROP
+
+# DROP
+
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (0)
+
+	movq	$1,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (3))
+
+	movq	%r11,	-32(%rbp)
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (2))
+
+	movq	%r11,	-24(%rbp)
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# CONST (0)
+
+	movq	$1,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (1))
+
+	movq	%r11,	-16(%rbp)
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (0))
+
+	movq	%r11,	-8(%rbp)
+# DROP
+
+# DROP
+
+# SLABEL ("L143")
+
+L143:
+
+# LINE (5)
+
+	.stabn 68,0,5,.L19-Linner_25
+
+.L19:
+
+# LD (Local (3))
+
+	movq	-32(%rbp),	%r10
+# LD (Local (1))
+
+	movq	-16(%rbp),	%r11
+# BINOP (">")
+
+	xorq	%rax,	%rax
+	cmpq	%r11,	%r10
+	setg	%al
+	salq	%rax
+	orq	$0x0001,	%rax
+	movq	%rax,	%r10
+# CJMP ("z", "L146")
+
+	sarq	%r10
+	cmpq	$0,	%r10
+	jz	L146
+# SLABEL ("L149")
+
+L149:
+
+# CONST (1)
+
+	movq	$3,	%r10
+# LINE (6)
+
+	.stabn 68,0,6,.L20-Linner_25
+
+.L20:
+
+# LD (Local (1))
+
+	movq	-16(%rbp),	%r11
+# LD (Local (3))
+
+	movq	-32(%rbp),	%r12
+# LD (Local (0))
+
+	movq	-8(%rbp),	%r13
+# SEXP ("cons", 2)
+
+	movq	$1697575,	%r14
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	%r14
+	pushq	%r13
+	pushq	%r12
+	movq	%rsp,	%rdi
+	movq	$7,	%rsi
+	call	Bsexp
+	addq	$24,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CALL ("Linner_25", 1, false)
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r12,	%rdi
+	movq	$1,	%r11
+	call	Linner_25
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# SEXP ("cons", 2)
+
+	movq	$1697575,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	filler(%rip)
+	pushq	%r13
+	pushq	%r12
+	pushq	%r11
+	movq	%rsp,	%rdi
+	movq	$7,	%rsi
+	call	Bsexp
+	addq	$32,	%rsp
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# CALL (".array", 2, true)
+
+	pushq	%rdi
+	pushq	filler(%rip)
+	pushq	%r11
+	pushq	%r10
+	movq	%rsp,	%rdi
+	movq	$5,	%rsi
+	call	Barray
+	addq	$24,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# SLABEL ("L150")
+
+L150:
+
+# JMP ("L131")
+
+	jmp	L131
+# LABEL ("L146")
+
+L146:
+
+# SLABEL ("L160")
+
+L160:
+
+# LINE (7)
+
+	.stabn 68,0,7,.L21-Linner_25
+
+.L21:
+
+# LD (Local (2))
+
+	movq	-24(%rbp),	%r10
+# CALL ("Linner_25", 1, false)
+
+	pushq	%rdi
+	pushq	filler(%rip)
+	movq	%r10,	%rdi
+	movq	$1,	%r11
+	call	Linner_25
+	addq	$8,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# DUP
+
+	movq	%r10,	%r11
+# SLABEL ("L167")
+
+L167:
+
+# DUP
+
+	movq	%r11,	%r12
+# ARRAY (2)
+
+	movq	$5,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Barray_patt
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# CJMP ("nz", "L165")
+
+	sarq	%r12
+	cmpq	$0,	%r12
+	jnz	L165
+# LABEL ("L166")
+
+L166:
+
+# DROP
+
+# JMP ("L162")
+
+	jmp	L162
+# LABEL ("L165")
+
+L165:
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (0)
+
+	movq	$1,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DUP
+
+	movq	%r11,	%r12
+# CONST (1)
+
+	movq	$3,	%r13
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	pushq	%r11
+	pushq	filler(%rip)
+	movq	%r13,	%rsi
+	movq	%r12,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	addq	$8,	%rsp
+	popq	%r11
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r12
+# DROP
+
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (0)
+
+	movq	$1,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (5))
+
+	movq	%r11,	-48(%rbp)
+# DROP
+
+# DUP
+
+	movq	%r10,	%r11
+# CONST (1)
+
+	movq	$3,	%r12
+# ELEM
+
+	pushq	%rdi
+	pushq	%r10
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$2,	%r11
+	call	Belem
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# ST (Local (4))
+
+	movq	%r11,	-40(%rbp)
+# DROP
+
+# DROP
+
+# SLABEL ("L169")
+
+L169:
+
+# LD (Local (5))
+
+	movq	-48(%rbp),	%r10
+# LD (Local (3))
+
+	movq	-32(%rbp),	%r11
+# LD (Local (4))
+
+	movq	-40(%rbp),	%r12
+# SEXP ("cons", 2)
+
+	movq	$1697575,	%r13
+	pushq	%rdi
+	pushq	%r10
+	pushq	filler(%rip)
+	pushq	%r13
+	pushq	%r12
+	pushq	%r11
+	movq	%rsp,	%rdi
+	movq	$7,	%rsi
+	call	Bsexp
+	addq	$32,	%rsp
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# CALL (".array", 2, true)
+
+	pushq	%rdi
+	pushq	filler(%rip)
+	pushq	%r11
+	pushq	%r10
+	movq	%rsp,	%rdi
+	movq	$5,	%rsi
+	call	Barray
+	addq	$24,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# SLABEL ("L170")
+
+L170:
+
+# SLABEL ("L168")
+
+L168:
+
+# JMP ("L131")
+
+	jmp	L131
+# LABEL ("L162")
+
+L162:
+
+# FAIL ((7, 17), true)
+
+	movq	$35,	%r14
+	movq	$15,	%r13
+	leaq	string_3(%rip),	%r12
+	movq	%r10,	%r11
+	pushq	%rdi
+	pushq	%r10
+	movq	%r14,	%rcx
+	movq	%r13,	%rdx
+	movq	%r12,	%rsi
+	movq	%r11,	%rdi
+	movq	$4,	%r11
+	call	Bmatch_failure
+	popq	%r10
+	popq	%rdi
+	movq	%rax,	%r11
+# JMP ("L131")
+
+	jmp	L131
+# SLABEL ("L161")
+
+L161:
+
+# SLABEL ("L144")
+
+L144:
+
+# JMP ("L131")
+
+# SLABEL ("L142")
+
+L142:
+
+# SLABEL ("L175")
+
+L175:
+
+# LABEL ("L136")
+
+L136:
+
+# DUP
+
+	movq	%r10,	%r11
+# DROP
+
+# DROP
+
+# SLABEL ("L177")
+
+L177:
+
+# CONST (0)
+
+	movq	$1,	%r10
+# LINE (9)
+
+	.stabn 68,0,9,.L22-Linner_25
+
+.L22:
+
+# LD (Arg (0))
+
+	movq	%rdi,	%r11
+# CALL (".array", 2, true)
+
+	pushq	%rdi
+	pushq	filler(%rip)
+	pushq	%r11
+	pushq	%r10
+	movq	%rsp,	%rdi
+	movq	$5,	%rsi
+	call	Barray
+	addq	$24,	%rsp
+	popq	%rdi
+	movq	%rax,	%r10
+# SLABEL ("L178")
+
+L178:
+
+# SLABEL ("L176")
+
+L176:
+
+# JMP ("L131")
+
+	jmp	L131
+# SLABEL ("L133")
+
+L133:
+
+# LABEL ("L131")
+
+L131:
+
+# SLABEL ("L130")
+
+L130:
+
+# END
+
+	movq	%r10,	%rax
+LLinner_25_epilogue:
+
+	movq	%rbp,	%rsp
+	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
+	ret
+	.cfi_endproc
+
+	.set	LLinner_25_SIZE,	64
+
+	.set	LSLinner_25_SIZE,	7
+
+	.size Linner_25, .-Linner_25
 
