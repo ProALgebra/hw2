@@ -25,8 +25,6 @@ extern "C" void failure(const char *fmt, ...) {
     throw std::runtime_error(buffer);
 }
 
-namespace {
-
 enum class OpGroup : uint8_t {
     BinOp = 0,
     Storage = 1,
@@ -47,115 +45,60 @@ enum class ControlOpcode : uint8_t {
     Call = 6
 };
 
-constexpr size_t MAX_INS_BYTES = 64;
-
-void disasm_once(bytefile *bf, uint32_t offset, FILE *out) {
-    instr_info info;
-    if (decode_instruction(bf, offset, out, &info) != 0) {
-        throw std::runtime_error("failed to decode instruction");
-    }
-}
-
-const char *disasm_to_string(bytefile *bf, uint32_t offset) {
-    static thread_local char buf[256];
-    std::fill(std::begin(buf), std::end(buf), 0);
-    if (decode_instruction_char(bf, offset, buf, sizeof buf, nullptr) != 0) {
-        throw std::runtime_error("failed to decode instruction");
-    }
-    return buf;
-}
-
-std::string strip_address(const char *s) {
+std::string sanitize_disasm(const std::string &s) {
     std::string out;
-    bool seen_colon = false;
-    bool skipping = true;
-    for (const char *p = s; *p; ++p) {
-        char c = *p;
-        if (!seen_colon) {
-            if (c == ':') {
-                seen_colon = true;
-                skipping = true;
+    out.reserve(s.size());
+    bool in_space = false;
+    for (char c : s) {
+        if (c == '\t' || c == ' ' || c == '\n' || c == '\r') {
+            if (!in_space) {
+                out.push_back(' ');
+                in_space = true;
             }
-            continue;
+        } else {
+            out.push_back(c);
+            in_space = false;
         }
-        if (skipping) {
-            if (c == ' ' || c == '\t') {
-                continue;
-            }
-            skipping = false;
-        }
-        if (c == '\n' || c == '\r') {
-            break;
-        }
-        out.push_back(c);
     }
-    if (out.empty()) {
-        return std::string(s);
+    while (!out.empty() && out.back() == ' ') {
+        out.pop_back();
     }
     return out;
 }
 
-struct Key {
-    uint8_t first[MAX_INS_BYTES];
-    uint8_t second[MAX_INS_BYTES];
-    uint8_t len1 = 0;
-    uint8_t len2 = 0;
-    bool has_second = false;
-};
-
-struct KeyHash {
-    std::size_t operator()(const Key &k) const noexcept {
-        auto hash_bytes = [](const uint8_t *data, uint8_t len) -> std::size_t {
-            std::size_t h = 0;
-            for (uint8_t i = 0; i < len; ++i) {
-                h = (h * 131) ^ data[i];
-            }
-            return h;
-        };
-        std::size_t h1 = hash_bytes(k.first, k.len1);
-        std::size_t h2 = k.has_second ? hash_bytes(k.second, k.len2) : 0;
-        return h1 ^ (h2 << 1) ^ static_cast<std::size_t>(k.has_second);
+std::string disasm_once(bytefile *bf, uint32_t offset) {
+    char *buf = nullptr;
+    size_t len = 0;
+    FILE *mem = open_memstream(&buf, &len);
+    if (mem == nullptr) {
+        throw std::runtime_error("open_memstream failed");
     }
-};
-
-struct KeyEq {
-    bool operator()(const Key &a, const Key &b) const noexcept {
-        if (a.has_second != b.has_second || a.len1 != b.len1 || a.len2 != b.len2) {
-            return false;
-        }
-        if (!std::equal(a.first, a.first + a.len1, b.first)) {
-            return false;
-        }
-        if (a.has_second) {
-            if (!std::equal(a.second, a.second + a.len2, b.second)) {
-                return false;
-            }
-        }
-        return true;
-    }
-};
-
-struct Example {
-    uint32_t off1;
-    uint32_t off2;
-    bool has_second;
-};
-
-Key make_key_bytes(const char *ptr, uint32_t len) {
-    if (len > MAX_INS_BYTES) {
-        throw std::runtime_error("instruction too long for fixed buffer");
-    }
-    Key k;
-    k.len1 = static_cast<uint8_t>(len);
-    for (uint32_t i = 0; i < len; ++i) {
-        k.first[i] = static_cast<uint8_t>(ptr[i]);
-    }
-    k.has_second = false;
-    k.len2 = 0;
-    return k;
+    disasm_single_instruction(bf, offset, mem);
+    fflush(mem);
+    std::string result(buf, len);
+    fclose(mem);
+    free(buf);
+    return result;
 }
 
-} // namespace
+std::string strip_address(const std::string &s) {
+    std::string cleaned = sanitize_disasm(s);
+    auto pos = cleaned.find(':');
+    if (pos == std::string::npos) {
+        return cleaned;
+    }
+    size_t start = pos + 1;
+    while (start < cleaned.size() && cleaned[start] == ' ') {
+        ++start;
+    }
+    return cleaned.substr(start);
+}
+
+struct Key {
+    uint32_t off1 = 0;
+    uint32_t off2 = 0;
+    bool has_second = false;
+};
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -167,43 +110,43 @@ int main(int argc, char *argv[]) {
         bytefile *bf = read_file(argv[1]);
         uint32_t code_size = bf->code_size;
 
-        std::unordered_map<Key, uint64_t, KeyHash, KeyEq> freq;
-        std::unordered_map<Key, Example, KeyHash, KeyEq> examples;
-        std::unordered_map<uint32_t, instr_info> decoded;
-        std::unordered_map<uint32_t, Key> bytes_cache;
-        std::vector<uint8_t> seen(code_size, 0);
+        std::vector<bool> reachable(code_size, 0); 
+        std::vector<bool> label(code_size, 0);      
         std::queue<uint32_t> q;
 
         auto enqueue = [&](uint32_t off) {
-            if (off < code_size && !seen[off]) {
+            if (off < code_size && !reachable[off]) {
                 q.push(off);
             }
         };
 
         if (bf->public_symbols_number == 0) {
             enqueue(0);
+            label[0] = 1;
         } else {
             for (uint32_t i = 0; i < bf->public_symbols_number; ++i) {
-                enqueue(get_public_offset(bf, i));
+                uint32_t off = get_public_offset(bf, i);
+                enqueue(off);
+                if (off < code_size) {
+                    label[off] = 1;
+                }
             }
         }
 
         while (!q.empty()) {
             uint32_t off = q.front();
             q.pop();
-            if (off >= code_size || seen[off]) {
+            if (off >= code_size || reachable[off]) {
                 continue;
             }
             instr_info info;
-            if (decode_instruction(bf, off, nullptr, &info) != 0) {
+            if (decode_instruction_info(bf, off, &info) != 0) {
                 throw std::runtime_error("failed to decode instruction");
             }
             if (info.size == 0 || info.next_offset > code_size) {
                 throw std::runtime_error("invalid instruction size");
             }
-            seen[off] = 1;
-            decoded.emplace(off, info);
-            bytes_cache.emplace(off, make_key_bytes(bf->code_ptr + off, info.size));
+            reachable[off] = 1;
 
             OpGroup g = static_cast<OpGroup>(info.group);
             uint8_t l = info.opcode;
@@ -218,134 +161,135 @@ int main(int argc, char *argv[]) {
                 enqueue(info.next_offset);
             }
             for (uint8_t i = 0; i < info.target_count; ++i) {
-                enqueue(info.targets[i]);
+                uint32_t tgt = info.targets[i];
+                if (tgt < code_size) {
+                    label[tgt] = 1;
+                }
+                enqueue(tgt);
+            }
+            if (g == OpGroup::Control &&
+                (l == static_cast<uint8_t>(ControlOpcode::Call) ||
+                 l == static_cast<uint8_t>(ControlOpcode::CallClosure))) {
+                if (info.next_offset < code_size) {
+                    label[info.next_offset] = 1;
+                }
             }
         }
+        const uint8_t *code_base = reinterpret_cast<const uint8_t *>(bf->code_ptr);
 
-        auto make_key = [&](const Key &a, const Key &b, bool has_second) {
-            Key k = a;
-            k.has_second = has_second;
-            if (has_second) {
-                k.len2 = b.len1;
-                if (k.len2 > MAX_INS_BYTES) {
-                    throw std::runtime_error("instruction too long for pair buffer");
-                }
-                std::memcpy(k.second, b.first, k.len2);
-            } else {
-                k.len2 = 0;
+        auto get_len = [&](uint32_t off) -> uint8_t {
+            instr_info inf;
+            if (decode_instruction_info(bf, off, &inf) != 0) {
+                throw std::runtime_error("failed to decode instruction length");
             }
+            return static_cast<uint8_t>(inf.size);
+        };
+
+        // Сборка ключа для биграммы
+        auto make_pair_key = [&](const Key &a, const Key &b) -> Key {
+            Key k = a;
+            k.has_second = true;
+            k.off2 = b.off1;
             return k;
         };
 
-        std::vector<uint32_t> order;
-        order.reserve(decoded.size());
-        for (const auto &kv : decoded) {
-            order.push_back(kv.first);
-        }
-        std::sort(order.begin(), order.end());
+        struct EntryOut { Key key; uint64_t cnt; };
+        std::vector<EntryOut> entries;
 
-        Key last_key{};
-        bool has_last = false;
-        Example last_example{0, 0, false};
+        auto cmp_key = [&](const Key &a, const Key &b) {
+            if (a.has_second != b.has_second) return a.has_second < b.has_second;
+            uint8_t len1a = get_len(a.off1);
+            uint8_t len1b = get_len(b.off1);
+            if (len1a != len1b) return len1a < len1b;
+            int cmp_first = std::memcmp(code_base + a.off1, code_base + b.off1, len1a);
+            if (cmp_first != 0) return cmp_first < 0;
+            if (a.has_second) {
+                uint8_t len2a = get_len(a.off2);
+                uint8_t len2b = get_len(b.off2);
+                if (len2a != len2b) return len2a < len2b;
+                int cmp_second = std::memcmp(code_base + a.off2, code_base + b.off2, len2a);
+                if (cmp_second != 0) return cmp_second < 0;
+            }
+            return false;
+        };
 
-        auto record = [&](const Key &k, const Example &ex) {
-            freq[k] += 1;
-            if (examples.find(k) == examples.end()) {
-                examples.emplace(k, ex);
+        auto eq_key = [&](const Key &a, const Key &b) -> bool {
+            return !cmp_key(a, b) && !cmp_key(b, a);
+        };
+
+        auto add_or_inc = [&](const Key &k) {
+            auto it = std::lower_bound(entries.begin(), entries.end(), k,
+                                       [&](const EntryOut &e, const Key &kk) { return cmp_key(e.key, kk); });
+            if (it != entries.end() && eq_key(it->key, k)) {
+                it->cnt += 1;
+            } else {
+                entries.insert(it, EntryOut{k, 1});
             }
         };
 
-        for (uint32_t off : order) {
-            const instr_info &info = decoded.at(off);
-            const Key &curr_bytes = bytes_cache.at(off);
+        uint32_t last_off = UINT32_MAX;
+        instr_info last_info{};
+        Key last_key{};
+        uint32_t off = 0;
+        while (off < code_size) {
+            if (!reachable[off]) {
+                ++off;
+                continue;
+            }
+            instr_info info;
+            if (decode_instruction_info(bf, off, &info) != 0) {
+                throw std::runtime_error("failed to decode instruction");
+            }
+            Key kcur;
+            kcur.off1 = off;
+            kcur.has_second = false;
+            kcur.off2 = 0;
 
-            Key uni = make_key(curr_bytes, Key{}, false);
-            record(uni, Example{off, 0, false});
+            add_or_inc(kcur);
 
-            if (has_last) {
-                Key pair = make_key(last_key, curr_bytes, true);
-                record(pair, Example{last_example.off1, off, true});
+            bool is_lbl = label[off] != 0;
+            if (last_off != UINT32_MAX && !is_lbl && last_info.next_offset == off) {
+                Key pair = make_pair_key(last_key, kcur);
+                add_or_inc(pair);
             }
 
-            for (uint8_t i = 0; i < info.target_count; ++i) {
-                uint32_t tgt = info.targets[i];
-                if (tgt < code_size && seen[tgt]) {
-                    const Key &tgt_bytes = bytes_cache.at(tgt);
-                    Key pair = make_key(curr_bytes, tgt_bytes, true);
-                    record(pair, Example{off, tgt, true});
+            for (uint8_t t = 0; t < info.target_count; ++t) {
+                uint32_t tgt = info.targets[t];
+                if (tgt < code_size && reachable[tgt]) {
+                    instr_info tgt_info;
+                    if (decode_instruction_info(bf, tgt, &tgt_info) != 0) {
+                        throw std::runtime_error("failed to decode instruction");
+                    }
+                    Key ktgt;
+                    ktgt.off1 = tgt;
+                    ktgt.has_second = false;
+                    ktgt.off2 = 0;
+                    Key pair = make_pair_key(kcur, ktgt);
+                    add_or_inc(pair);
                 }
             }
 
-            OpGroup g = static_cast<OpGroup>(info.group);
-            uint8_t l = info.opcode;
-            bool reset = info.breaks_flow;
-            bool pseudo_end = false;
-            if (g == OpGroup::Storage && l == static_cast<uint8_t>(StorageOpcode::Jump)) {
-                reset = true;
-            } else if (g == OpGroup::Control &&
-                       (l == static_cast<uint8_t>(ControlOpcode::Call) ||
-                        l == static_cast<uint8_t>(ControlOpcode::CallClosure))) {
-                reset = false;
-                pseudo_end = true;
+            if (info.next_offset < code_size && reachable[info.next_offset] &&
+                !label[info.next_offset]) {
+                last_off = off;
+                last_info = info;
+                last_key = kcur;
+            } else {
+                last_off = UINT32_MAX;
             }
 
-            if (pseudo_end) {
-                Key end_key = make_key_bytes("END", 3);
-                last_key = end_key;
-                last_example = Example{UINT32_MAX, 0, false};
-                has_last = true;
-            } else if (reset) {
-                has_last = false;
-            } else {
-                last_key = uni;
-                last_example = Example{off, 0, false};
-                has_last = true;
-            }
+            ++off;
         }
-
-        std::vector<std::pair<Key, uint64_t>> ordered(freq.begin(), freq.end());
-        std::sort(ordered.begin(), ordered.end(), [](const auto &lhs, const auto &rhs) {
-            if (lhs.second != rhs.second) {
-                return lhs.second > rhs.second;
-            }
-            if (lhs.first.has_second != rhs.first.has_second) {
-                return lhs.first.has_second < rhs.first.has_second;
-            }
-            if (lhs.first.len1 != rhs.first.len1) {
-                return lhs.first.len1 < rhs.first.len1;
-            }
-            int cmp_first = std::memcmp(lhs.first.first, rhs.first.first, lhs.first.len1);
-            if (cmp_first != 0) {
-                return cmp_first < 0;
-            }
-            if (lhs.first.has_second) {
-                if (lhs.first.len2 != rhs.first.len2) {
-                    return lhs.first.len2 < rhs.first.len2;
-                }
-                int cmp_second = std::memcmp(lhs.first.second, rhs.first.second, lhs.first.len2);
-                if (cmp_second != 0) {
-                    return cmp_second < 0;
-                }
-            }
-            return false;
+        std::sort(entries.begin(), entries.end(), [&](const EntryOut &a, const EntryOut &b) {
+            if (a.cnt != b.cnt) return a.cnt > b.cnt;
+            return cmp_key(a.key, b.key);
         });
-
-        for (const auto &entry : ordered) {
-            const Key &k = entry.first;
-            auto ex_it = examples.find(k);
-            std::string lhs_text = "UNKNOWN";
-            std::string rhs_text;
-            if (ex_it != examples.end()) {
-                const Example &ex = ex_it->second;
-                lhs_text = (ex.off1 == UINT32_MAX) ? "END" : strip_address(disasm_to_string(bf, ex.off1));
-                if (ex.has_second) {
-                    rhs_text = strip_address(disasm_to_string(bf, ex.off2));
-                }
-            }
-            if (k.has_second) {
-                std::cout << lhs_text << " -> " << rhs_text << " : " << entry.second << "\n";
+        for (const auto &e : entries) {
+            if (!e.key.has_second) {
+                std::cout << strip_address(disasm_once(bf, e.key.off1)) << " : " << e.cnt << "\n";
             } else {
-                std::cout << lhs_text << " : " << entry.second << "\n";
+                std::cout << strip_address(disasm_once(bf, e.key.off1)) << " -> "
+                          << strip_address(disasm_once(bf, e.key.off2)) << " : " << e.cnt << "\n";
             }
         }
     } catch (const std::exception &e) {

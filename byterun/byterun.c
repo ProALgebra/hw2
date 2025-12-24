@@ -236,6 +236,15 @@ typedef enum {
   Builtin_MakeArray = 4
 } BuiltinOpcode;
 
+uint32_t disasm_single_instruction(const bytefile *bf, uint32_t offset, FILE *f) {
+  instr_info dummy;
+  bytefile *nbf = (bytefile *)bf;
+  if (decode_instruction(nbf, offset, f, &dummy) != 0) {
+    return 0;
+  }
+  return dummy.next_offset;
+}
+
 int decode_instruction(bytefile *bf, uint32_t offset, FILE *f, instr_info *info) {
   if (offset >= bf->code_size) {
     return -1;
@@ -581,6 +590,10 @@ int decode_instruction(bytefile *bf, uint32_t offset, FILE *f, instr_info *info)
     *info = local_info;
   }
   return 0;
+}
+
+int decode_instruction_info(bytefile *bf, uint32_t offset, instr_info *info) {
+  return decode_instruction(bf, offset, NULL, info);
 }
 
 int decode_instruction_char(bytefile *bf, uint32_t offset, char *out, size_t out_size, instr_info *info) {
