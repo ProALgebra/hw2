@@ -26,12 +26,12 @@ void fail(const char *fmt, ...) {
     va_end(ap);
     throw std::runtime_error(buffer);
 }
-} // namespace
+} 
 
 namespace {
 
 constexpr uint32_t kMaxDepth = 65535;
-constexpr uint32_t kScopeWordCount = 10; // from interpretatorv1_0.cpp
+constexpr uint32_t kScopeWordCount = 10;
 
 struct Instr {
     uint32_t offset = 0;
