@@ -1,7 +1,6 @@
 # include <stdbool.h>
 # include "../runtime32/runtime.h"
 # include "byterun.h"
-# include "opcodes.h"
 
 # include <stdexcept>
 # include <array>
@@ -25,7 +24,7 @@ extern "C" {
 }
 
 
-const size_t stack_capacity = 65535;
+const size_t stack_capacity = 4294967292/1024;
 using binop_fn = int32_t (*)(int32_t, int32_t);
 
 #define DEFINE_OP(name, op) \
@@ -51,14 +50,91 @@ static int32_t op_div(int32_t x, int32_t y) { if(y == 0){
 static int32_t op_mod(int32_t x, int32_t y) { if(y == 0){
     throw std::runtime_error("zero div");
 }return x % y; }
-using BinOp = ::BinOp;
-using OpcodeGroup = ::OpcodeGroup;
-using StorageOpcode = ::StorageOpcode;
-using AddressMode = ::AddressMode;
-using LoadOpcode = ::LoadOpcode;
-using ControlOpcode = ::ControlOpcode;
-using PatternOpcode = ::PatternOpcode;
-using BuiltinOpcode = ::BuiltinOpcode;
+enum class BinOp : char {
+    BinOpAdd = 0,
+    BinOpSub = 1,
+    BinOpMul = 2,
+    BinOpDiv = 3,
+    BinOpMod = 4,
+    BinOpLt = 5,
+    BinOpLe = 6,
+    BinOpGt = 7,
+    BinOpGe = 8,
+    BinOpEq = 9,
+    BinOpNe = 10,
+    BinOpAnd = 11,
+    BinOpOr = 12
+};
+
+enum class OpcodeGroup : char {
+    BinOp = 0,
+    Storage = 1,
+    Load = 2,
+    LoadAddress = 3,
+    Store = 4,
+    Control = 5,
+    Pattern = 6,
+    Builtin = 7,
+    Halt = 15
+};
+
+enum class StorageOpcode : char {
+    Const = 0,
+    String = 1,
+    Sexp = 2,
+    StoreIndexed = 3,
+    StoreArray = 4,
+    Jump = 5,
+    End = 6,
+    Return = 7,
+    Drop = 8,
+    Dup = 9,
+    Swap = 10,
+    Elem = 11
+};
+
+enum class AddressMode : char {
+    Global = 0,
+    Local = 1,
+    Argument = 2,
+    Closure = 3
+};
+
+enum class LoadOpcode : char {
+    Load = 2,
+    LoadAddress = 3,
+    Store = 4
+};
+
+enum class ControlOpcode : char {
+    JumpIfZero = 0,
+    JumpIfNotZero = 1,
+    Begin = 2,
+    BeginCaptured = 3,
+    Closure = 4,
+    CallClosure = 5,
+    Call = 6,
+    Tag = 7,
+    Array = 8,
+    Fail = 9,
+    Line = 10
+};
+
+enum class PatternOpcode : char {
+    StringMatch = 0,
+    StringTag = 1,
+    ArrayTag = 2,
+    Unboxed = 5,
+    ClosureTag = 6
+};
+
+enum class BuiltinOpcode : char {
+    Read = 0,
+    Write = 1,
+    Length = 2,
+    ToString = 3,
+    MakeArray = 4
+};
 
 struct Sc{
     char* origin_ip;
@@ -118,9 +194,6 @@ size_t instruction_bit_number(const char* instruction_ptr) {
 }
 int32_t* stack_start = nullptr;
 int32_t* stack_end   = nullptr;
-static inline size_t remaining_stack_words() {
-    return static_cast<size_t>((__gc_stack_top - reinterpret_cast<size_t>(stack_start)) / sizeof(int32_t));
-}
 struct Memory{
     std::unique_ptr<int32_t[]> storage;
     int32_t *global_area = nullptr;
@@ -141,6 +214,9 @@ struct Memory{
     }
 
     int32_t pop() {
+        if (__gc_stack_top == reinterpret_cast<size_t>(stack_end)){
+            throw std::runtime_error("Pop from empty stack");
+        }
         int32_t ret = *reinterpret_cast<int32_t*>(__gc_stack_top);
         __gc_stack_top += sizeof(int32_t);
         return ret;
@@ -151,11 +227,18 @@ struct Memory{
     }
 
     void push(int32_t v){
+        if (__gc_stack_top == reinterpret_cast<size_t>(stack_start)){
+            throw error("Push to full stack int bit number %zu", instruction_bit_number(current_instruction_ptr));
+        }
+
         __gc_stack_top -= sizeof(int32_t);
         *reinterpret_cast<int32_t*>(__gc_stack_top) = v;
     }
 
     void reserve_globals(uint32_t words){
+        if (static_cast<size_t>(words) > stack_capacity){
+            throw std::runtime_error("Invalid global area size");
+        }
         global_area = base();
         std::fill(global_area, global_area + words, 0);
         stack_start = base() + words;
@@ -179,7 +262,12 @@ static Sc* allocate_scope(Memory& mem) {
 
 
 static inline void ensure_bytes_available(size_t bytes) {
-    (void)bytes;
+    if (ip > code_end ||
+        static_cast<size_t>(code_end - ip) < bytes) {
+        throw error("Attempt to read %zu bytes past end of bytecode at bit %zu",
+                    bytes,
+                    instruction_bit_number(current_instruction_ptr));
+    }
 }
 
 static inline int32_t read_int_operand() {
@@ -196,7 +284,20 @@ static inline unsigned char read_byte_operand() {
 }
 
 static inline char* read_string_operand() {
-    return get_string(bf, static_cast<uint32_t>(read_int_operand()));
+    int32_t raw_index = read_int_operand();
+    if (raw_index < 0) {
+        throw error("Negative string index %d at bit %zu",
+                    raw_index,
+                    instruction_bit_number(current_instruction_ptr));
+    }
+    uint32_t pos = static_cast<uint32_t>(raw_index);
+    if (bf == nullptr || pos >= bf->stringtab_size) {
+        throw error("String index %u is out of range (size %u) at bit %zu",
+                    pos,
+                    bf ? bf->stringtab_size : 0U,
+                    instruction_bit_number(current_instruction_ptr));
+    }
+    return get_string(bf, pos);
 }
 
 # define INT    read_int_operand()
@@ -386,6 +487,10 @@ protected:
                     }
                     res = mem.pop();
                     int32_t* frame_top = cur_scope->frame_limit;
+                    if (frame_top == nullptr) {
+                        throw error("Frame limit is not initialized at bit %zu",
+                                    current_instruction_bit_number());
+                    }
                     __gc_stack_top = reinterpret_cast<size_t>(frame_top);
                     ip = cur_scope->origin_ip;
                     cur_scope = cur_scope->outer;
@@ -480,24 +585,16 @@ protected:
                     break;
                 }
                 case ControlOpcode::Begin: {
-                    int32_t encoded = INT;
-                    int32_t arg_slots = encoded & 0xFFFF;
-                    int32_t depth_hint = (encoded >> 16) & 0xFFFF;
-                    if (depth_hint > 0) {
-                        size_t available = remaining_stack_words();
-                        if (static_cast<size_t>(depth_hint) > available) {
-                            throw error("Stack depth hint exceeded at bit %zu", current_instruction_bit_number());
-                        }
-                    }
                     int32_t* frame_entry = reinterpret_cast<int32_t*>(__gc_stack_top);
-                    int32_t arg_capacity = arg_slots + 2;
+                    int32_t arg_slots = ensure_non_negative(INT, "argument slot count");
+                    int32_t arg_capacity = checked_add(arg_slots, 2, "argument slot count");
                     int32_t* top_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
                     top_ptr -= arg_capacity;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
                     mem.pop(); 
                     char* saved_origin_ip = (char*)mem.pop();
                     int32_t* args_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
-                    int32_t var_slots = INT;
+                    int32_t var_slots = ensure_non_negative(INT, "local variable slot count");
                     top_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
                     top_ptr -= var_slots;
                     int32_t* vars_ptr = top_ptr;
@@ -517,22 +614,14 @@ protected:
                     break;
                 }
                 case ControlOpcode::BeginCaptured: {
-                    int32_t encoded = INT;
-                    int32_t arg_slots = encoded & 0xFFFF;
-                    int32_t depth_hint = (encoded >> 16) & 0xFFFF;
-                    if (depth_hint > 0) {
-                        size_t available = remaining_stack_words();
-                        if (static_cast<size_t>(depth_hint) > available) {
-                            throw error("Stack depth hint exceeded at bit %zu", current_instruction_bit_number());
-                        }
-                    }
                     int32_t* frame_entry = reinterpret_cast<int32_t*>(__gc_stack_top);
-                    int32_t arg_capacity = arg_slots + 2;
+                    int32_t arg_slots = ensure_non_negative(INT, "captured function argument slot count");
+                    int32_t arg_capacity = checked_add(arg_slots, 2, "captured function argument slot count");
                     int32_t* top_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
                     top_ptr -= arg_capacity;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
                     int32_t* args_ptr = top_ptr;
-                    int32_t captured = mem.pop();
+                    int32_t captured = ensure_non_negative(mem.pop(), "captured environment size");
                     char* saved_origin_ip = (char *)mem.pop();
                     top_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
                     top_ptr -= 2;
@@ -540,7 +629,7 @@ protected:
                     top_ptr -= captured;
                     int32_t* acc_ptr = top_ptr;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
-                    int32_t var_slots = INT;
+                    int32_t var_slots = ensure_non_negative(INT, "captured function local variable slot count");
                     top_ptr -= var_slots;
                     int32_t* vars_ptr = top_ptr;
                     __gc_stack_top = reinterpret_cast<size_t>(top_ptr);
@@ -562,7 +651,7 @@ protected:
                     int32_t res = 0;
                     int32_t pos = INT;
                     (void)require_code_offset(pos, "closure entry");
-                    int32_t n = INT;
+                    int32_t n = ensure_non_negative(INT, "closure capture count");
                     for (int32_t i = 0; i < n; i++) {
                         char tag = BYTE;
                         auto mode = static_cast<AddressMode>(tag);
@@ -590,7 +679,13 @@ protected:
                     break;
                 }
                 case ControlOpcode::CallClosure: {
-                    int32_t n = INT;
+                    int32_t n = ensure_non_negative(INT, "closure argument count");
+                    size_t available_words = (reinterpret_cast<size_t>(stack_end) - __gc_stack_top) / sizeof(int32_t);
+                    size_t required_words = static_cast<size_t>(n) + 1;
+                    if (required_words > available_words) {
+                        throw error("Stack underflow during closure call at bit %zu",
+                                    current_instruction_bit_number());
+                    }
                     int32_t* args_ptr = reinterpret_cast<int32_t*>(__gc_stack_top);
                     int32_t* closure_slot = args_ptr + n;
                     data* d = TO_DATA(*closure_slot);
@@ -615,7 +710,7 @@ protected:
                 case ControlOpcode::Call: {
                     int32_t v = INT;
                     char* target = require_code_offset(v, "call target");
-                    int32_t n = INT;
+                    int32_t n = ensure_non_negative(INT, "call argument count");
                     mem.push(ip);
                     mem.push(0);
                     ip = target;
@@ -702,7 +797,7 @@ protected:
                     res = (int32_t)Lstring((void *)mem.pop());
                     break;
                 case BuiltinOpcode::MakeArray: {
-                    int32_t length = INT;
+                    int32_t length = ensure_non_negative(INT, "array length");
                     res = (int32_t)make_array(length);
                     break;
                 }
@@ -763,44 +858,116 @@ protected:
         }
 
     private:
-        int32_t ensure_non_negative(int32_t value, const char* /*what*/) const {
+        int32_t ensure_non_negative(int32_t value, const char* what) const {
+            if (value < 0) {
+                throw error("%s (%d) must be non-negative at bit %zu",
+                            what,
+                            value,
+                            current_instruction_bit_number());
+            }
             return value;
         }
 
-        int32_t checked_add(int32_t lhs, int32_t rhs, const char* /*what*/) const {
+        int32_t checked_add(int32_t lhs, int32_t rhs, const char* what) const {
+            if (rhs < 0) {
+                throw error("Internal error: negative addend for %s at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
+            if (lhs > std::numeric_limits<int32_t>::max() - rhs) {
+                throw error("%s overflow (%d + %d) at bit %zu",
+                            what,
+                            lhs,
+                            rhs,
+                            current_instruction_bit_number());
+            }
             return lhs + rhs;
         }
 
-        Sc* require_scope(const char* /*what*/) const {
+        Sc* require_scope(const char* what) const {
+            if (cur_scope == nullptr) {
+                throw error("Attempt to access %s without an active scope at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
             return cur_scope;
         }
 
         int32_t* require_slot_in_range(int32_t* base,
-                                   int32_t /*count*/,
+                                   int32_t count,
                                    int32_t index,
-                                   const char* /*what*/) const {
+                                   const char* what) const {
+            if (base == nullptr) {
+                throw error("Storage for %s is not initialized at bit %zu",
+                            what,
+                            current_instruction_bit_number());
+            }
+            if (count < 0) {
+                throw error("Storage size for %s (%d) is corrupted at bit %zu",
+                            what,
+                            count,
+                            current_instruction_bit_number());
+            }
+            if (index < 0 || index >= count) {
+                throw error("%s index %d out of bounds (size %d) at bit %zu",
+                            what,
+                            index,
+                            count,
+                            current_instruction_bit_number());
+            }
             return base + index;
         }
 
         int32_t* require_global_slot(int32_t index) const {
+            if (bf == nullptr || bf->global_ptr == nullptr) {
+                throw error("Global area is not initialized at bit %zu",
+                            current_instruction_bit_number());
+            }
+            if (index < 0) {
+                throw error("Global index %d is negative at bit %zu",
+                            index,
+                            current_instruction_bit_number());
+            }
+            uint32_t size = bf->global_area_size;
+            if (static_cast<uint32_t>(index) >= size) {
+                throw error("Global index %d exceeds size %u at bit %zu",
+                            index,
+                            size,
+                            current_instruction_bit_number());
+            }
             return bf->global_ptr + index;
         }
 
         int32_t* require_local_slot(int32_t index) const {
-            Sc* scope = cur_scope;
-            return scope->vars + index;
+            Sc* scope = require_scope("local variables");
+            return require_slot_in_range(scope->vars,
+                                         scope->var_count,
+                                         index,
+                                         "local variable");
         }
 
         int32_t* require_argument_slot(int32_t index) const {
-            Sc* scope = cur_scope;
+            Sc* scope = require_scope("arguments");
             int32_t logical_index = scope->arg_count - 1 - index;
-            return scope->args + logical_index;
+            return require_slot_in_range(scope->args,
+                                         scope->arg_count,
+                                         logical_index,
+                                         "argument");
         }
 
         int32_t* require_closure_slot(int32_t index) const {
-            Sc* scope = cur_scope;
-            int32_t* slot = scope->acc + index;
-            return reinterpret_cast<int32_t*>(*slot);
+            Sc* scope = require_scope("captured variables");
+            int32_t* slot = require_slot_in_range(scope->acc,
+                                              scope->acc_count,
+                                              index,
+                                              "captured variable");
+            int32_t* resolved = reinterpret_cast<int32_t*>(*slot);
+            if (resolved == nullptr) {
+                throw error("Captured variable slot %d is null at bit %zu",
+                            index,
+                            current_instruction_bit_number());
+            }
+            return resolved;
         }
 
         int32_t* resolve_slot(AddressMode mode, int32_t index) const {
@@ -814,17 +981,35 @@ protected:
                 case AddressMode::Closure:
                     return require_closure_slot(index);
                 default:
-                    return nullptr;
+                    throw error("Unknown address mode %d at bit %zu",
+                                static_cast<int32_t>(mode),
+                                current_instruction_bit_number());
             }
         }
 
-        char* require_code_offset(int32_t offset, const char* /*what*/) const {
+        char* require_code_offset(int32_t offset, const char* what) const {
+            if (bf == nullptr || bf->code_ptr == nullptr) {
+                throw error("Bytecode stream is not initialized at bit %zu",
+                            current_instruction_bit_number());
+            }
+            if (offset < 0) {
+                throw error("%s offset %d is negative at bit %zu",
+                            what,
+                            offset,
+                            current_instruction_bit_number());
+            }
+            uint32_t size = bf->code_size;
+            if (static_cast<uint32_t>(offset) >= size) {
+                throw error("%s offset %d out of bounds (code size %u) at bit %zu",
+                            what,
+                            offset,
+                            size,
+                            current_instruction_bit_number());
+            }
             return bf->code_ptr + offset;
         }
     };
 int main(int argc, char*argv[]){
-    bytefile* f = read_file(argv[1]);
-    verify_bytecode(f, nullptr);
     Worker w = Worker();
-    return w.init().setFile(f).eval();
+    return w.init().setFile(read_file(argv[1])).eval();
 }
