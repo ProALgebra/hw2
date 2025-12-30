@@ -824,7 +824,8 @@ protected:
     };
 int main(int argc, char*argv[]){
     bytefile* f = read_file(argv[1]);
-    verify_bytecode(f, nullptr);
     Worker w = Worker();
-    return w.init().setFile(f).eval();
+    w.init().setFile(f);
+    verify_bytecode(f, nullptr);
+    return w.eval();
 }
