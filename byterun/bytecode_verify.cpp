@@ -241,10 +241,8 @@ static void analyze_function(bytefile *bf,
                 pushn(1);
                 break;
             case StorageOpcode::End:
-                // Function return: after END the callee leaves exactly one value on the stack.
                 depth = 1;
                 if (depth > max_depth) max_depth = depth;
-                // Do not explore beyond END within this function.
                 skip_targets = true;
                 break;
             default:
@@ -272,7 +270,6 @@ static void analyze_function(bytefile *bf,
                 uint32_t vars = static_cast<uint32_t>(ins.imm1);
                 uint32_t alloc = args + vars + kScopeWordCount;
                 pushn(alloc);
-                // The hint is relative to the depth at entry (which is 0 in this analysis).
                 maybe_update_begin_hint(bf, ins.offset, max_depth);
                 break;
             }
